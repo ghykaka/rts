@@ -1,0 +1,59 @@
+/* pages/recharge/recharge.wxss */
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  text-align: center;
+  padding: 40rpx 0;
+}
+
+.amount-section {
+  background-color: #fff;
+  padding: 30rpx;
+  border-radius: 12rpx;
+  margin-bottom: 40rpx;
+}
+
+.label {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.amount-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.amount-item {
+  width: calc(33.33% - 14rpx);
+  padding: 30rpx 0;
+  background-color: #f5f5f5;
+  border-radius: 8rpx;
+  text-align: center;
+}
+
+.amount-item.active {
+  background-color: #07c160;
+}
+
+.amount-item .amount {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.amount-item.active .amount {
+  color: #fff;
+}
+
+.btn-recharge {
+  background-color: #07c160;
+  color: #fff;
+  text-align: center;
+  padding: 30rpx;
+  border-radius: 40rpx;
+  font-size: 32rpx;
+  margin: 0 30rpx;
+}

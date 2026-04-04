@@ -1,0 +1,8 @@
+{
+  "name": "initData",
+  "version": "1.0.0",
+  "description": "初始化数据",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

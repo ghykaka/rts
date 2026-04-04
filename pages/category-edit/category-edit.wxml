@@ -1,0 +1,27 @@
+<!--pages/category-edit/category-edit.wxml-->
+<view class="container">
+  <view class="form-card">
+    <view class="form-item">
+      <view class="form-label">{{isEdit ? '分类名称' : '添加分类'}}</view>
+      <input
+        class="form-input"
+        placeholder="请输入分类名称"
+        value="{{name}}"
+        bindinput="onNameInput"
+        maxlength="20"
+      />
+    </view>
+
+    <view class="form-item" wx:if="{{parentName}}">
+      <view class="form-label">父分类</view>
+      <view class="parent-category">{{parentName}}</view>
+    </view>
+
+    <view class="form-item" wx:if="{{!isEdit && !parentName}}">
+      <view class="form-label">分类级别</view>
+      <view class="level-tag">一级分类</view>
+    </view>
+  </view>
+
+  <button class="save-btn" bindtap="save">保存</button>
+</view>

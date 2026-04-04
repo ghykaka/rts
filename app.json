@@ -1,0 +1,50 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/works/works",
+    "pages/profile/profile",
+    "pages/template-detail/template-detail",
+    "pages/template-list/template-list",
+    "pages/materials/materials",
+    "pages/material-upload/material-upload",
+    "pages/recharge/recharge",
+    "pages/enterprise/enterprise",
+    "pages/login/login",
+    "pages/init-data/init-data",
+    "pages/add-templates/add-templates",
+    "pages/product-select/product-select",
+    "pages/generate/generate",
+    "pages/enterprise-register/enterprise-register",
+    "pages/sub-accounts/sub-accounts",
+    "pages/category-manage/category-manage",
+    "pages/category-edit/category-edit"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "让她生",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#333333",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/works/works",
+        "text": "作品库"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

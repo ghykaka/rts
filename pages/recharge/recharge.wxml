@@ -1,0 +1,23 @@
+<!--pages/recharge/recharge.wxml-->
+<view class="container">
+  <view class="title">{{type === 'enterprise' ? '企业' : '个人'}}账户充值</view>
+
+  <view class="amount-section">
+    <text class="label">选择金额</text>
+    <view class="amount-grid">
+      <view 
+        class="amount-item {{selectedAmount === item ? 'active' : ''}}"
+        wx:for="{{amounts}}"
+        wx:key="*this"
+        bindtap="selectAmount"
+        data-amount="{{item}}"
+      >
+        <text class="amount">¥{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="btn-recharge" bindtap="recharge" loading="{{loading}}">
+    微信支付 ¥{{selectedAmount}}
+  </view>
+</view>

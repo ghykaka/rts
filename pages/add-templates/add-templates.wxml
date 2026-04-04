@@ -1,0 +1,4 @@
+<view class="container">
+  <view class="title">添加测试模板</view>
+  <button class="btn" bindtap="addTemplates" loading="{{loading}}">{{loading ? '添加中...' : '添加测试模板'}}</button>
+</view>

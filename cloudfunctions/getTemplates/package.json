@@ -1,0 +1,8 @@
+{
+  "name": "getTemplates",
+  "version": "1.0.0",
+  "description": "获取模板列表",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

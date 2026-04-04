@@ -1,0 +1,174 @@
+<!--pages/sub-accounts/sub-accounts.wxml-->
+<view class="container">
+  <!-- 企业信息卡片 -->
+  <view class="enterprise-card" wx:if="{{userInfo}}">
+    <view class="enterprise-info">
+      <text class="company-name">{{userInfo.company_name}}</text>
+      <text class="nickname">{{userInfo.nickname}}</text>
+    </view>
+    <view class="balance-info">
+      <text class="card-balance-label">账户余额</text>
+      <text class="balance-value">¥{{companyBalance}}</text>
+    </view>
+  </view>
+
+  <view class="header">
+    <text class="title">管理子账号</text>
+    <text class="subtitle">为企业成员分配账号和余额</text>
+  </view>
+
+  <button class="add-btn" bindtap="showAddModal">+ 添加成员</button>
+
+  <!-- 测试按钮 -->
+  <button class="test-btn" bindtap="createTestAccount">创建测试子账号(测试用)</button>
+
+  <view class="account-list">
+    <view class="account-item" wx:for="{{subAccounts}}" wx:key="_id">
+      <view class="account-info">
+        <image class="avatar" src="{{item.avatar || '/assets/icons/default-avatar.png'}}" mode="aspectFill" />
+        <view class="info">
+          <text class="name">{{item.nickname || '未命名'}}</text>
+          <text class="remark-row">
+            <text class="remark" wx:if="{{item.remark}}">{{item.remark}}</text>
+            <text wx:if="{{item.remark}}" class="remark-link" bindtap="showEditRemark" data-user-id="{{item._id}}" data-remark="{{item.remark}}">修改备注</text>
+            <text wx:else class="remark-link" bindtap="showEditRemark" data-user-id="{{item._id}}" data-remark="{{item.remark}}">添加备注</text>
+          </text>
+          <text class="phone">{{item.phone}}</text>
+        </view>
+      </view>
+      <view class="balance-section">
+        <text class="balance-label">账户余额</text>
+        <text class="balance-amount">¥{{item.displayBalance}}</text>
+        <button
+          class="allocate-btn"
+          size="mini"
+          bindtap="continueAllocateBalance"
+          data-user-id="{{item._id}}"
+          data-balance="{{item.balance}}"
+        >
+          分配
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{subAccounts.length === 0}}">
+    <text class="empty-text">暂无子账号</text>
+    <text class="empty-tip">点击上方按钮添加成员</text>
+    <text class="test-tip">或点击"创建测试子账号"测试页面效果</text>
+  </view>
+</view>
+
+<!-- 添加对话框 -->
+<view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">添加成员</text>
+      <text class="modal-close" bindtap="hideModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <view class="form-label">手机号</view>
+        <input
+          class="form-input"
+          placeholder="请输入成员手机号"
+          value="{{newPhone}}"
+          bindinput="onPhoneInput"
+          bindtap="stopPropagation"
+          type="number"
+          maxlength="11"
+        />
+      </view>
+      <view class="form-item">
+        <view class="form-label">备注名称</view>
+        <input
+          class="form-input"
+          placeholder="请输入真实姓名备注"
+          value="{{newRemark}}"
+          bindinput="onRemarkInput"
+          bindtap="stopPropagation"
+          type="text"
+        />
+      </view>
+      <view class="form-item">
+        <view class="form-label">分配余额(元)</view>
+        <input
+          class="form-input"
+          placeholder="请输入分配金额"
+          value="{{displayBalance}}"
+          bindinput="onBalanceInput"
+          bindtap="stopPropagation"
+          type="number"
+        />
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" bindtap="hideModal">取消</button>
+      <button class="modal-btn confirm" bindtap="addSubAccount">确认添加</button>
+    </view>
+  </view>
+</view>
+
+<!-- 分配余额对话框 -->
+<view class="modal-mask" wx:if="{{allocateModal}}" bindtap="hideAllocateModal">
+  <view class="modal-content allocate-modal {{allocateModalKeyboardUp ? 'content-keyboard-up' : ''}}" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">分配余额</text>
+      <text class="modal-close" bindtap="hideAllocateModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <view class="form-label">当前余额: <text class="current-balance">¥{{currentSubBalance}}</text></view>
+      </view>
+      <view class="form-item">
+        <view class="form-label">请输入目标余额(元)</view>
+        <input
+          class="form-input"
+          placeholder="请输入目标余额"
+          value="{{displayAllocateAmount}}"
+          bindinput="onAllocateAmountInput"
+          bindtap="stopPropagation"
+          bindfocus="onAllocateInputFocus"
+          bindblur="onAllocateInputBlur"
+          type="digit"
+        />
+      </view>
+      <view class="form-item">
+        <view class="form-tip">将为企业增加支出: <text class="allocate-amount">¥{{allocateDiff}}</text></view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" bindtap="hideAllocateModal">取消</button>
+      <button class="modal-btn confirm" bindtap="confirmAllocate">确认分配</button>
+    </view>
+  </view>
+</view>
+
+<!-- 编辑备注对话框 -->
+<view class="modal-mask" wx:if="{{editRemarkModal}}" bindtap="hideEditRemarkModal">
+  <view class="modal-content {{editRemarkModalKeyboardUp ? 'content-keyboard-up' : ''}}" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">修改备注</text>
+      <text class="modal-close" bindtap="hideEditRemarkModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <view class="form-label">备注名称</view>
+        <input
+          class="form-input"
+          placeholder="请输入真实姓名备注"
+          value="{{editRemark}}"
+          bindinput="onEditRemarkInput"
+          bindtap="stopPropagation"
+          bindfocus="onEditRemarkInputFocus"
+          bindblur="onEditRemarkInputBlur"
+          type="text"
+        />
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" bindtap="hideEditRemarkModal">取消</button>
+      <button class="modal-btn confirm" bindtap="saveRemark">保存</button>
+    </view>
+  </view>
+</view>

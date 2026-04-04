@@ -1,0 +1,65 @@
+<!--pages/material-upload/material-upload.wxml-->
+<view class="container">
+  <!-- 分类选择区域 -->
+  <view class="category-section">
+    <view class="section-title">选择分类</view>
+    <view class="category-picker-wrapper">
+      <scroll-view class="category-picker-left" scroll-y>
+        <view
+          class="picker-category-item {{pickerSelectedTopCategory === item._id ? 'active' : ''}}"
+          wx:for="{{pickerTopCategories}}"
+          wx:key="_id"
+          bindtap="selectPickerTopCategory"
+          data-id="{{item._id}}"
+          data-name="{{item.name}}"
+        >
+          {{item.name}}
+        </view>
+      </scroll-view>
+      <scroll-view class="category-picker-right" scroll-y>
+        <view class="empty-picker" wx:if="{{pickerSubCategories.length === 0}}">
+          <text>暂无二级分类</text>
+        </view>
+        <view
+          class="picker-category-item {{pickerSelectedSubCategory === item._id ? 'active' : ''}}"
+          wx:for="{{pickerSubCategories}}"
+          wx:key="_id"
+          bindtap="selectPickerSubCategory"
+          data-id="{{item._id}}"
+          data-name="{{item.name}}"
+        >
+          {{item.name}}
+        </view>
+      </scroll-view>
+    </view>
+    <view class="selected-category-display">
+      <text class="selected-category-label">已选择：</text>
+      <text class="selected-category-value">{{selectedCategoryName || '请选择分类'}}</text>
+    </view>
+  </view>
+
+  <!-- 图片选择区域 -->
+  <view class="image-section">
+    <view class="section-title">选择图片</view>
+    <view class="image-grid">
+      <!-- 已选择的图片 -->
+      <view class="image-item" wx:for="{{selectedImages}}" wx:key="index">
+        <image src="{{item.tempFilePath}}" mode="aspectFill" />
+        <view class="image-delete" bindtap="deleteImage" data-index="{{index}}">✕</view>
+      </view>
+      <!-- 添加图片按钮 -->
+      <view class="image-add" bindtap="chooseImages" wx:if="{{selectedImages.length < 9}}">
+        <text class="add-icon">+</text>
+        <text class="add-text">添加图片</text>
+      </view>
+    </view>
+    <view class="image-hint">最多可选择9张图片</view>
+  </view>
+
+  <!-- 上传按钮 -->
+  <view class="upload-section">
+    <button class="upload-btn" bindtap="uploadImages" disabled="{{!selectedCategoryIds || selectedImages.length === 0}}">
+      开始上传
+    </button>
+  </view>
+</view>

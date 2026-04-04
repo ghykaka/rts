@@ -1,0 +1,17 @@
+<!--pages/login/login.wxml-->
+<view class="container">
+  <view class="logo-section">
+    <image class="logo" src="/assets/icons/logo.png" />
+    <text class="title">让她生！让她生！</text>
+  </view>
+
+  <button class="btn-login" bindtap="wxLogin" loading="{{loading}}">
+    微信授权登录
+  </button>
+
+  <button class="btn-phone" open-type="getPhoneNumber" bindgetphonenumber="getPhoneNumber" loading="{{phoneLoading}}">
+    授权手机号登录
+  </button>
+
+  <text class="tip">登录后享受更多功能，新用户赠送5元余额</text>
+</view>

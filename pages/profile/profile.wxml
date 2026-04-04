@@ -1,0 +1,114 @@
+<!--pages/profile/profile.wxml-->
+<view class="container">
+  <!-- 未登录 -->
+  <view class="not-login" wx:if="{{!isLogin}}">
+    <image class="logo" src="/assets/icons/logo.png" />
+    <button class="btn-login" bindtap="wxLogin">登录 / 注册</button>
+    <text class="tip">登录后享受更多功能</text>
+  </view>
+
+  <!-- 已登录 -->
+  <view class="profile-content" wx:if="{{isLogin}}">
+    <!-- 用户信息 -->
+    <view class="user-card">
+      <image class="avatar" src="{{userInfo.avatar || '/assets/icons/default-avatar.png'}}" mode="aspectFill" />
+      <view class="user-info">
+        <view class="nickname-row">
+          <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
+          <text class="user-type">{{currentMode === 'enterprise' ? (userInfo.company_short_name || userInfo.company_name || '企业会员') : '普通会员'}}</text>
+        </view>
+        <view class="role-tags" wx:if="{{userInfo.user_type === 'enterprise'}}">
+          <text class="role-tag {{currentMode === 'enterprise' ? 'active' : ''}}" bindtap="switchToEnterprise">企业</text>
+          <text class="role-tag {{currentMode === 'personal' ? 'active' : ''}}" bindtap="switchToPersonal">个人</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 余额 -->
+    <view class="balance-section">
+      <view class="balance-card" wx:if="{{currentMode === 'personal'}}">
+        <view class="balance-info">
+          <text class="label">个人账户余额</text>
+          <text class="amount">¥{{personalBalance}}</text>
+        </view>
+        <button class="btn-recharge" size="mini" bindtap="goRecharge">充值</button>
+      </view>
+      <view class="balance-card enterprise-card" wx:if="{{currentMode === 'enterprise'}}">
+        <view class="balance-info">
+          <text class="label">企业账户余额</text>
+          <text class="amount">¥{{enterpriseBalance}}</text>
+        </view>
+        <button class="btn-recharge" size="mini" bindtap="goRecharge">充值</button>
+      </view>
+    </view>
+
+    <!-- 成为企业用户入口 -->
+    <view class="enterprise-banner" wx:if="{{currentMode === 'personal' && userInfo.user_type !== 'enterprise'}}" bindtap="goEnterpriseRegister">
+      <view class="banner-content">
+        <text class="banner-title">成为企业用户</text>
+        <text class="banner-desc">享受企业专属权益和管理功能</text>
+      </view>
+      <text class="banner-arrow">></text>
+    </view>
+
+    <!-- 企业管理入口 -->
+    <view class="enterprise-manage-banner" wx:if="{{currentMode === 'enterprise'}}" bindtap="goManageSubAccounts">
+      <view class="banner-content">
+        <text class="banner-title">管理子账号</text>
+        <text class="banner-desc">为企业成员分配账号和余额</text>
+      </view>
+      <text class="banner-arrow">></text>
+    </view>
+
+    <!-- 临时测试按钮 -->
+    <view class="test-banner" wx:if="{{userInfo.user_type === 'enterprise'}}" bindtap="updateBalanceTo50">
+      <view class="banner-content">
+        <text class="banner-title">测试：设置余额为50元</text>
+      </view>
+    </view>
+
+    <!-- 功能列表 -->
+    <view class="menu-list">
+      <!-- 企业用户显示两个素材库入口 -->
+      <block wx:if="{{currentMode === 'enterprise'}}">
+        <view class="menu-item" bindtap="goEnterpriseMaterials">
+          <image class="menu-icon" src="/assets/icons/user1.png" />
+          <text class="menu-text">企业素材库</text>
+          <text class="arrow">></text>
+        </view>
+        <view class="menu-item" bindtap="goPersonalMaterials">
+          <image class="menu-icon" src="/assets/icons/user2.png" />
+          <text class="menu-text">个人素材库</text>
+          <text class="arrow">></text>
+        </view>
+      </block>
+      <!-- 个人用户只显示个人素材库 -->
+      <view class="menu-item" wx:if="{{currentMode === 'personal'}}" bindtap="goPersonalMaterials">
+        <image class="menu-icon" src="/assets/icons/user2.png" />
+        <text class="menu-text">我的个人素材库</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item" wx:if="{{false}}">
+        <image class="menu-icon" src="/assets/icons/distribution.png" />
+        <text class="menu-text">分销合伙人</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item">
+        <image class="menu-icon" src="/assets/icons/user3.png" />
+        <text class="menu-text">咨询客服</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item">
+        <image class="menu-icon" src="/assets/icons/user4.png" />
+        <text class="menu-text">关于我们</text>
+        <text class="arrow">></text>
+      </view>
+      <!-- 退出登录 -->
+      <view class="menu-item logout-item" bindtap="logout">
+        <image class="menu-icon" src="/assets/icons/logout.png" />
+        <text class="menu-text logout-text">退出登录</text>
+      </view>
+    </view>
+  </view>
+</view>
+

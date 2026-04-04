@@ -1,0 +1,123 @@
+<!--pages/product-select/product-select.wxml-->
+<view class="container">
+  <!-- Step标题 -->
+  <view class="step-title">Step2，选择产品</view>
+
+  <!-- 模板预览 -->
+  <view class="header-section">
+    <view class="template-preview">
+      <image
+        class="template-cover"
+        src="{{templateCover}}"
+        mode="aspectFill"
+      />
+      <view class="template-details">
+        <text class="template-name">{{templateName}}</text>
+        <text class="template-desc">{{templateDesc}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 素材库切换 -->
+  <view class="lib-switch">
+    <view
+      class="switch-btn {{materialLibType === 'personal' ? 'active' : ''}}"
+      bindtap="switchMaterialLib"
+      data-type="personal"
+    >
+      个人素材库
+    </view>
+    <view
+      class="switch-btn {{materialLibType === 'enterprise' ? 'active' : ''}}"
+      bindtap="switchMaterialLib"
+      data-type="enterprise"
+      wx:if="{{hasEnterpriseLib}}"
+    >
+      企业素材库
+    </view>
+  </view>
+
+  <!-- 一级分类标签栏 -->
+  <view class="category-tabs primary-tabs" wx:if="{{primaryCategories.length > 0}}">
+    <view
+      wx:for="{{primaryCategories}}"
+      wx:key="_id"
+      class="tab-item {{currentPrimaryCategory === item.name ? 'active' : ''}}"
+      bindtap="selectPrimaryCategory"
+      data-name="{{item.name}}"
+      data-id="{{item._id}}"
+    >
+      {{item.name}}
+    </view>
+  </view>
+
+  <!-- 二级分类标签栏 -->
+  <view class="category-tabs secondary-tabs" wx:if="{{currentPrimaryCategory}}">
+    <view
+      class="tab-item {{currentSecondaryCategory === '' ? 'active' : ''}}"
+      bindtap="selectSecondaryCategory"
+      data-id=""
+    >
+      全部
+    </view>
+    <view
+      wx:for="{{filteredSecondaryCategories}}"
+      wx:key="_id"
+      class="tab-item {{currentSecondaryCategory === item._id ? 'active' : ''}}"
+      bindtap="selectSecondaryCategory"
+      data-id="{{item._id}}"
+    >
+      {{item.name}}
+    </view>
+  </view>
+
+  <!-- 产品瀑布流 - 3列 -->
+  <view class="waterfall-container" wx:if="{{products.length > 0}}">
+      <view
+        class="product-card"
+        wx:for="{{products}}"
+        wx:key="_id"
+        bindtap="selectProduct"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+        data-image="{{item.displayUrl || item.url}}"
+        data-description="{{item.description}}"
+      >
+        <view class="product-image-wrapper">
+          <image
+            class="product-image"
+            src="{{item.displayUrl || item.url}}"
+            mode="heightFix"
+          />
+        </view>
+        <view class="product-info">
+          <text class="product-name">{{item.name}}</text>
+        </view>
+        <view class="select-icon {{selectedProductId === item._id ? 'active' : ''}}">
+          <text>{{selectedProductId === item._id ? '✓' : ''}}</text>
+        </view>
+      </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{products.length === 0 && !loading}}" class="empty">
+    <image class="empty-icon" src="/assets/icons/empty.png" mode="aspectFit" />
+    <text class="empty-text">暂无素材</text>
+    <text class="empty-tip">请先上传素材到素材库</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view wx:if="{{hasMore && !loading && products.length > 0}}" class="load-more" bindtap="loadMore">
+    <text>加载更多</text>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="footer-btn" wx:if="{{selectedProductId}}">
+    <button class="next-btn" bindtap="goToGenerate">下一步</button>
+  </view>
+</view>

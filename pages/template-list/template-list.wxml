@@ -1,0 +1,133 @@
+<!--pages/template-list/template-list.wxml-->
+<view class="container">
+  <!-- Step标题 -->
+  <view class="step-title">Step1，选择风格模板</view>
+
+  <!-- 顶部分类标签栏 -->
+  <view class="category-tabs">
+    <view
+      class="tab-item {{currentCategory === '' ? 'active' : ''}}"
+      bindtap="selectCategory"
+      data-name=""
+    >
+      全部
+    </view>
+    <view
+      class="tab-item {{currentCategory === '广告风格' ? 'active' : ''}}"
+      bindtap="selectCategory"
+      data-name="广告风格"
+    >
+      广告风格
+    </view>
+    <view
+      class="tab-item {{currentCategory === '实景风格' ? 'active' : ''}}"
+      bindtap="selectCategory"
+      data-name="实景风格"
+    >
+      实景风格
+    </view>
+    <view
+      class="tab-item {{currentCategory === '人物风格' ? 'active' : ''}}"
+      bindtap="selectCategory"
+      data-name="人物风格"
+    >
+      人物风格
+    </view>
+    <view
+      class="tab-item {{currentCategory === '动漫风格' ? 'active' : ''}}"
+      bindtap="selectCategory"
+      data-name="动漫风格"
+    >
+      动漫风格
+    </view>
+  </view>
+
+  <!-- 模板瀑布流 - 3列 -->
+  <view class="waterfall-container" wx:if="{{templates.length > 0}}">
+    <!-- 第0列 -->
+    <view class="waterfall-column">
+      <view
+        class="template-card"
+        wx:for="{{column0}}"
+        wx:key="_id"
+        bindtap="selectTemplate"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+        data-cover="{{item.cover_url}}"
+        data-description="{{item.description}}"
+      >
+        <image
+          class="template-image"
+          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          mode="widthFix"
+        />
+        <view class="template-info">
+          <text class="template-title">{{item.name}}</text>
+          <text class="template-category">{{item.category_name}}</text>
+        </view>
+      </view>
+    </view>
+    <!-- 第1列 -->
+    <view class="waterfall-column">
+      <view
+        class="template-card"
+        wx:for="{{column1}}"
+        wx:key="_id"
+        bindtap="selectTemplate"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+        data-cover="{{item.cover_url}}"
+        data-description="{{item.description}}"
+      >
+        <image
+          class="template-image"
+          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          mode="widthFix"
+        />
+        <view class="template-info">
+          <text class="template-title">{{item.name}}</text>
+          <text class="template-category">{{item.category_name}}</text>
+        </view>
+      </view>
+    </view>
+    <!-- 第2列 -->
+    <view class="waterfall-column">
+      <view
+        class="template-card"
+        wx:for="{{column2}}"
+        wx:key="_id"
+        bindtap="selectTemplate"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+        data-cover="{{item.cover_url}}"
+        data-description="{{item.description}}"
+      >
+        <image
+          class="template-image"
+          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          mode="widthFix"
+        />
+        <view class="template-info">
+          <text class="template-title">{{item.name}}</text>
+          <text class="template-category">{{item.category_name}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{templates.length === 0 && !loading}}" class="empty">
+    <image class="empty-icon" src="/assets/icons/empty.png" mode="aspectFit" />
+    <text class="empty-text">暂无模板</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view wx:if="{{hasMore && !loading}}" class="load-more" bindtap="loadMore">
+    <text>加载更多</text>
+  </view>
+</view>

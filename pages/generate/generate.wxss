@@ -1,0 +1,311 @@
+/* pages/generate/generate.wxss */
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 240rpx;
+}
+
+/* 顶部信息 */
+.header-info {
+  background: #fff;
+  padding: 30rpx 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.product-image,
+.template-cover {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  background: #eee;
+}
+
+.plus-icon {
+  font-size: 40rpx;
+  color: #999;
+  font-weight: bold;
+}
+
+.info-text {
+  text-align: center;
+}
+
+.product-name {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.template-style {
+  font-size: 26rpx;
+  color: #666;
+  display: block;
+}
+
+/* 通用区块样式 */
+.section {
+  background: #fff;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+}
+
+/* 作品参考 */
+.reference-scroll {
+  white-space: nowrap;
+}
+
+.reference-list {
+  display: inline-flex;
+  gap: 16rpx;
+}
+
+.reference-item {
+  width: 200rpx;
+  height: 280rpx;
+  border-radius: 12rpx;
+  background: #eee;
+  flex-shrink: 0;
+}
+
+/* 尺寸选择 */
+.size-options {
+  display: flex;
+  justify-content: space-around;
+}
+
+.size-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid transparent;
+}
+
+.size-item.active {
+  background: #FFF5F5;
+  border-color: #D40E61;
+}
+
+.size-preview {
+  background: linear-gradient(135deg, #D40E61, #FF5C8D);
+  border-radius: 4rpx;
+}
+
+.size-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.size-item.active .size-label {
+  color: #D40E61;
+  font-weight: bold;
+}
+
+/* 表单 */
+.form-section {
+  padding: 30rpx 20rpx;
+}
+
+.form-item {
+  margin-bottom: 30rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-count {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: normal;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.upload-area {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  background: #f5f5f5;
+  overflow: hidden;
+}
+
+.upload-image {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.upload-icon {
+  font-size: 60rpx;
+  color: #ddd;
+}
+
+.upload-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 价格信息 */
+.price-info {
+  background: #fff;
+  padding: 24rpx 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.price-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.price-value {
+  font-size: 36rpx;
+  color: #FF6B6B;
+  font-weight: bold;
+}
+
+.price-tip {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 底部操作 */
+.footer-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 20rpx;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.generate-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+  color: #fff;
+  border: none;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+}
+
+.generate-btn[disabled] {
+  background: #ddd;
+}
+
+.generate-btn.disabled {
+  background: #ccc;
+}
+
+.generate-btn::after {
+  border: none;
+}
+
+.balance-tip {
+  text-align: center;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.recharge-link {
+  color: #D40E61;
+  margin-left: 8rpx;
+}
+
+/* 生成成功提示 */
+.success-tip {
+  background: linear-gradient(135deg, #FFF5F5, #FFE8EC);
+  border-radius: 12rpx;
+  padding: 30rpx 20rpx;
+  text-align: center;
+}
+
+.success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.success-icon {
+  width: 80rpx;
+  height: 80rpx;
+}
+
+.success-text {
+  font-size: 30rpx;
+  color: #D40E61;
+  font-weight: bold;
+}
+
+.success-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.success-btn {
+  margin-top: 8rpx;
+  padding: 16rpx 40rpx;
+  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+  color: #fff;
+  border-radius: 24rpx;
+  font-size: 28rpx;
+}

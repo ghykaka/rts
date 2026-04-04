@@ -1,0 +1,8 @@
+{
+  "name": "getMaterialCategories",
+  "version": "1.0.0",
+  "description": "获取素材分类",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

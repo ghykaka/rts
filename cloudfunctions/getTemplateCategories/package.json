@@ -1,0 +1,8 @@
+{
+  "name": "getTemplateCategories",
+  "version": "1.0.0",
+  "description": "获取模板分类",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

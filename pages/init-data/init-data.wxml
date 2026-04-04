@@ -1,0 +1,28 @@
+<!--pages/init-data/init-data.wxml-->
+<view class="container">
+  <view class="title">初始化测试数据</view>
+  <view class="desc">点击下方按钮创建示例数据，用于测试小程序各页面功能</view>
+  
+  <button 
+    class="btn" 
+    bindtap="initData" 
+    loading="{{loading}}"
+  >
+    {{loading ? '初始化中...' : '开始初始化'}}
+  </button>
+  
+  <view wx:if="{{result}}" class="result {{result.success ? 'success' : 'error'}}">
+    <view class="result-title">{{result.success ? '✓ 成功' : '✗ 失败'}}</view>
+    <view class="result-msg">{{result.message}}</view>
+    <view wx:if="{{result.success}}" class="result-detail">
+      <view>• 一级分类：4 个</view>
+      <view>• 二级分类：{{result.subCategories}} 个</view>
+      <view>• 模板：{{result.templates}} 个</view>
+      <view>• 动态字段：{{result.fields}} 个</view>
+      <view>• 定价规则：{{result.pricing}} 条</view>
+      <view>• 产品素材：{{result.products}} 个</view>
+    </view>
+  </view>
+  
+  <button class="btn btn-secondary" bindtap="goBack">返回上一页</button>
+</view>

@@ -1,0 +1,52 @@
+<!--pages/enterprise-register/enterprise-register.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">注册企业账号</text>
+    <text class="subtitle">成为企业用户，享受专属权益</text>
+  </view>
+
+  <view class="form-section">
+    <view class="form-item">
+      <view class="form-label">企业名称</view>
+      <input
+        class="form-input"
+        placeholder="请输入企业全称"
+        value="{{companyName}}"
+        bindinput="onCompanyNameInput"
+        maxlength="50"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">企业简称</view>
+      <input
+        class="form-input"
+        placeholder="请输入企业简称(用于显示)"
+        value="{{companyShortName}}"
+        bindinput="onCompanyShortNameInput"
+        maxlength="10"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">所属行业</view>
+      <picker
+        mode="selector"
+        range="{{industries}}"
+        value="{{selectedIndustryIndex}}"
+        bindchange="onIndustryChange"
+      >
+        <view class="picker {{industry ? '' : 'placeholder'}}">
+          {{industry || '请选择行业'}}
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <button class="submit-btn" bindtap="submitRegister">提交注册</button>
+
+  <view class="tip">
+    <text>提示：</text>
+    <text>注册后您将成为企业管理员，可为企业充值和管理子账号</text>
+  </view>
+</view>

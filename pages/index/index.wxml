@@ -1,0 +1,97 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 顶部头图 -->
+  <image class="header-image" src="/assets/images/首页头图1000x600-saibo.png" mode="widthFix" />
+
+  <!-- 用户信息栏 - 叠在头图底部 -->
+  <view class="user-bar-overlap" bindtap="goProfile">
+    <view class="user-info">
+      <image
+        class="avatar"
+        src="{{userInfo.avatar || '/assets/icons/default-avatar.png'}}"
+        mode="aspectFill"
+      />
+      <view class="info">
+        <text class="nickname">{{isLogin ? (userInfo.nickname || '微信用户') : '点击登录'}}</text>
+        <text class="balance" wx:if="{{isLogin}}">余额：¥{{displayBalance}}</text>
+      </view>
+    </view>
+    <view class="recharge-btn" wx:if="{{isLogin}}" bindtap="goRecharge">
+      <text>充值</text>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-entry">
+    <view class="entry-item" bindtap="goPosterTemplates">
+      <view class="entry-icon" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);">
+        <text>🎨</text>
+      </view>
+      <text class="entry-name">产品海报</text>
+    </view>
+    <view class="entry-item" bindtap="goVideoTemplates">
+      <view class="entry-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <text>🎬</text>
+      </view>
+      <text class="entry-name">视频生成</text>
+    </view>
+  </view>
+
+  <!-- 分类入口 -->
+  <view class="category-section">
+    <view
+      class="category-item"
+      wx:for="{{categories}}"
+      wx:key="_id"
+      bindtap="goCategory"
+      data-id="{{item._id}}"
+      data-name="{{item.name}}"
+    >
+      <view class="category-icon">{{item.name[0]}}</view>
+      <text class="category-name">{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- 创意推荐 -->
+  <view class="section">
+    <view class="section-title">热门模板</view>
+    <view class="template-grid">
+      <view
+        class="template-item"
+        wx:for="{{hotTemplates}}"
+        wx:key="_id"
+        bindtap="goTemplateDetail"
+        data-id="{{item._id}}"
+      >
+        <image
+          class="template-cover"
+          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          mode="aspectFill"
+        />
+        <view class="template-info">
+          <text class="template-name">{{item.name}}</text>
+          <text class="template-price">¥{{item.displayPrice || '0.80'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{hotTemplates.length === 0 && !loading}}">
+      <image class="empty-icon" src="/assets/icons/empty.png" mode="aspectFit" />
+      <text class="empty-text">暂无模板</text>
+    </view>
+  </view>
+
+  <!-- 未登录提示 -->
+  <view class="login-tip" wx:if="{{!isLogin}}">
+    <text>登录后享受更多功能，新用户赠送5元余额</text>
+    <button class="login-btn" bindtap="wxLogin">立即登录</button>
+  </view>
+
+  <!-- 开发调试入口 -->
+  <view class="debug-section" wx:if="{{isDebug}}">
+    <view class="debug-btn" bindtap="goInitData">初始化测试数据</view>
+    <view class="debug-btn" bindtap="goAddTemplates">添加模板</view>
+  </view>
+</view>
+
