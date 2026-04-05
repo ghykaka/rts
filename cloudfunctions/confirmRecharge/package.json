@@ -1,0 +1,8 @@
+{
+  "name": "confirmRecharge",
+  "version": "1.0.0",
+  "description": "确认充值并更新余额",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

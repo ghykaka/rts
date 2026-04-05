@@ -4,40 +4,21 @@ const app = getApp()
 Page({
   data: {
     loading: false,
-    phoneLoading: false
+    phoneLoading: false,
+    agreeProtocol: true // 默认同意服务协议
   },
 
-  async wxLogin() {
-    if (this.data.loading) return
-    this.setData({ loading: true })
+  // 切换协议勾选状态
+  toggleProtocol() {
+    this.setData({
+      agreeProtocol: !this.data.agreeProtocol
+    })
+  },
 
-    try {
-      const loginRes = await wx.login()
-      const userInfoRes = await wx.getUserProfile({ desc: '用于完善用户资料' })
-
-      const res = await wx.cloud.callFunction({
-        name: 'login',
-        data: {
-          code: loginRes.code,
-          userInfo: userInfoRes.userInfo
-        }
-      })
-
-      if (res.result.success) {
-        app.setUserInfo(userInfoRes.userInfo, res.result.data.userId)
-        wx.showToast({ title: '登录成功', icon: 'success' })
-        setTimeout(() => {
-          wx.navigateBack()
-        }, 1500)
-      } else {
-        wx.showToast({ title: res.result.error || '登录失败', icon: 'none' })
-      }
-    } catch (err) {
-      console.error('wxLogin error:', err)
-      wx.showToast({ title: '登录失败', icon: 'none' })
-    } finally {
-      this.setData({ loading: false })
-    }
+  // 查看服务协议（后续链接到文章页面）
+  viewProtocol() {
+    // TODO: 后续跳转到文章详情页
+    wx.showToast({ title: '服务协议页面开发中', icon: 'none' })
   },
 
   async getPhoneNumber(e) {
@@ -67,12 +48,23 @@ Page({
         }
       })
 
-      if (res.result.success) {
+      if (res.result && res.result.success) {
+        // 保存用户信息
         app.setUserInfo(res.result.data.userInfo, res.result.data.userId)
-        wx.showToast({ title: '登录成功', icon: 'success' })
-        setTimeout(() => {
-          wx.navigateBack()
-        }, 1500)
+
+        // 立即返回，不等待 toast
+        wx.navigateBack()
+
+        // 通知上一页刷新（通过 eventChannel）
+        const pages = getCurrentPages()
+        const prevPage = pages[pages.length - 2]
+        if (prevPage) {
+          prevPage.setData({
+            isLogin: true,
+            userInfo: res.result.data.userInfo,
+            displayBalance: (res.result.data.userInfo.balance / 100).toFixed(2)
+          })
+        }
       } else {
         wx.showToast({ title: res.result.error || '登录失败', icon: 'none' })
       }

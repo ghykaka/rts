@@ -3,6 +3,7 @@ const app = getApp()
 
 Page({
   data: {
+    isLogin: false,
     type: 'personal', // personal / enterprise
     isAdmin: false, // 是否为企业管理员（企业素材库时控制权限）
     canUpload: true, // 是否可以上传
@@ -44,10 +45,24 @@ Page({
     if (type) {
       this.setData({ type })
     }
+    this.checkLogin()
     this.checkUserRole()
     this.loadCategories()
     this.loadAllSubCategories() // 初始加载所有二级分类
     this.loadMaterials()
+  },
+
+  // 检查登录状态
+  checkLogin() {
+    const userId = wx.getStorageSync('userId')
+    this.setData({ isLogin: !!userId })
+  },
+
+  // 跳转登录页面
+  goLogin() {
+    wx.navigateTo({
+      url: '/pages/login/login'
+    })
   },
 
   // 检查用户角色

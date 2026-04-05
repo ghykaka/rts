@@ -4,8 +4,8 @@ const app = getApp()
 Page({
   data: {
     type: 'personal', // personal / enterprise
-    amounts: [50, 100, 200, 500, 1000],
-    selectedAmount: 100,
+    amounts: [0.01, 1, 10, 50, 100, 200, 500, 1000],
+    selectedAmount: 0.01,
     loading: false
   },
 
@@ -48,8 +48,41 @@ Page({
           package: res.result.data.package,
           signType: 'MD5',
           paySign: res.result.data.paySign,
-          success: () => {
-            wx.showToast({ title: '充值成功', icon: 'success' })
+          success: async () => {
+            // 支付成功后，主动更新余额
+            wx.showLoading({ title: '处理中...' })
+            try {
+              const result = await wx.cloud.callFunction({
+                name: 'confirmRecharge',
+                data: {
+                  outTradeNo: res.result.outTradeNo
+                }
+              })
+              wx.hideLoading()
+              
+              // 如果充值成功，更新全局用户数据和本地缓存
+              if (result.result.success && app.globalData.userInfo) {
+                // 获取最新余额
+                const userRes = await wx.cloud.callFunction({
+                  name: 'getUserInfo',
+                  data: {
+                    userId: app.globalData.userId
+                  }
+                })
+                if (userRes.result.success) {
+                  // 更新内存中的数据
+                  app.globalData.userInfo.balance = userRes.result.data.balance
+                  // 更新本地缓存（重要！其他页面从缓存读取余额）
+                  wx.setStorageSync('userInfo', app.globalData.userInfo)
+                }
+              }
+              
+              wx.showToast({ title: '充值成功', icon: 'success' })
+            } catch (err) {
+              wx.hideLoading()
+              console.error('确认充值失败:', err)
+              wx.showToast({ title: '充值成功，余额稍后更新', icon: 'none' })
+            }
             setTimeout(() => {
               wx.navigateBack()
             }, 1500)

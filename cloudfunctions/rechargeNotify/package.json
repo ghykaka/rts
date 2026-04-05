@@ -1,0 +1,8 @@
+{
+  "name": "rechargeNotify",
+  "version": "1.0.0",
+  "description": "支付回调处理",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

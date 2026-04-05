@@ -26,27 +26,88 @@
   color: #333;
 }
 
+.btn-wrapper {
+  width: 100%;
+  padding: 0 40rpx;
+  margin-bottom: 40rpx;
+  box-sizing: border-box;
+}
+
+/* 登录按钮样式 */
 .btn-login {
-  width: 600rpx;
+  width: 100%;
   background-color: #07c160;
   color: #fff;
-  border-radius: 40rpx;
-  margin-bottom: 30rpx;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  padding: 28rpx 0;
+  line-height: 1;
 }
 
-.btn-phone {
-  width: 600rpx;
-  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+/* 禁用状态 */
+.btn-login.disabled {
+  background-color: #ccc;
   color: #fff;
-  border-radius: 40rpx;
-  margin-bottom: 30rpx;
 }
 
-.btn-phone::after {
+button.btn-login.disabled {
+  background-color: #ccc !important;
+  color: #fff !important;
+}
+
+button.btn-login::after {
   border: none;
 }
 
 .tip {
   color: #999;
   font-size: 24rpx;
+  padding: 0 40rpx;
+  text-align: center;
+}
+
+/* 服务协议勾选 */
+.protocol-row {
+  display: flex;
+  align-items: center;
+  padding: 0 40rpx;
+  margin-top: 20rpx;
+}
+
+.checkbox-wrapper {
+  padding: 10rpx;
+}
+
+.checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  border: 2rpx solid #ccc;
+  border-radius: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.checkbox.checked {
+  background: #07c160;
+  border-color: #07c160;
+}
+
+.check-icon {
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: bold;
+}
+
+.protocol-text {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.protocol-link {
+  font-size: 24rpx;
+  color: #D40E61;
 }

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "openapi": []
+  },
+  "triggers": [
+    {
+      "name": "http-trigger",
+      "type": "http",
+      "config": {
+        "methods": ["POST", "GET"],
+        "path": "/rechargeNotify"
+      }
+    }
+  ]
+}

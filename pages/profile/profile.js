@@ -21,82 +21,43 @@ Page({
   },
 
   checkLogin() {
-    let userId = wx.getStorageSync('userId')
-    let userInfo = wx.getStorageSync('userInfo')
+    const userId = wx.getStorageSync('userId')
+    const userInfo = wx.getStorageSync('userInfo')
 
-    console.log('checkLogin - userId:', userId)
-    console.log('checkLogin - userInfo:', userInfo)
-
-    // 如果有 userId 但没有 userInfo，创建默认测试用户
-    if (userId && !userInfo) {
-      userInfo = {
-        nickname: '测试用户',
-        avatar: '',
-        user_type: 'personal',
-        balance: 5000 // 50元 = 5000分
-      }
-      wx.setStorageSync('userInfo', userInfo)
-    }
-
-    if (userId) {
-      // 读取保存的模式
+    if (userId && userInfo) {
       const savedMode = wx.getStorageSync('currentMode') || 'personal'
       this.setData({
         isLogin: true,
         userInfo: userInfo,
         currentMode: savedMode
       })
-
-      // 设置余额
       this.setBalances(userInfo, savedMode)
     } else {
-      // 测试模式：如果未登录，显示登录状态为 false
       this.setData({ isLogin: false })
     }
   },
 
   async getUserInfo() {
     const userId = wx.getStorageSync('userId')
-
-    console.log('getUserInfo - userId:', userId)
-
-    if (!userId) {
-      return
-    }
+    if (!userId) return
 
     try {
-      // 测试模式：如果 userId 以 test_user 开头，直接使用 storage 中的数据
-      if (userId.startsWith('test_user')) {
-        const userInfo = wx.getStorageSync('userInfo')
-        console.log('getUserInfo - test mode, userInfo:', userInfo)
-        if (userInfo) {
-          this.setData({
-            userInfo: userInfo,
-            isLogin: true
-          })
-          this.setBalances(userInfo, this.data.currentMode)
-        }
-        return
-      }
+      const res = await wx.cloud.callFunction({
+        name: 'getUserInfo',
+        data: { userId }
+      })
 
-      // 正常模式：从数据库查询
-      const db = wx.cloud.database()
-      const res = await db.collection('users')
-        .where({ _openid: '{openid}' })
-        .get()
-
-      if (res.data && res.data.length > 0) {
-        const user = res.data[0]
-
+      if (res.result && res.result.success) {
+        const user = res.result.data
+        // 更新 storage 和全局数据
+        wx.setStorageSync('userInfo', user)
+        app.globalData.userInfo = user
+        
         this.setData({
           userInfo: user,
           isLogin: true
         })
-
         this.setBalances(user, this.data.currentMode)
-
-        // 保存到 storage
-        wx.setStorageSync('userInfo', user)
       }
     } catch (err) {
       console.error('getUserInfo error:', err)
@@ -107,13 +68,14 @@ Page({
   setBalances(userInfo, mode) {
     if (!userInfo) return
 
-    const enterpriseBalance = userInfo.balance || 0
-    // 个人余额可以单独存储，这里暂时使用 enterpriseBalance 的一部分或固定值
-    const personalBalance = userInfo.personal_balance || 0
+    // 统一使用 balance 字段
+    const balance = userInfo.balance || 0
 
     this.setData({
-      enterpriseBalance: (enterpriseBalance / 100).toFixed(2),
-      personalBalance: (personalBalance / 100).toFixed(2)
+      balance: balance,
+      displayBalance: (balance / 100).toFixed(2),
+      enterpriseBalance: (balance / 100).toFixed(2),
+      personalBalance: (balance / 100).toFixed(2)
     })
   },
 
@@ -134,39 +96,11 @@ Page({
     wx.setStorageSync('currentMode', 'personal')
   },
 
-  // 微信登录
-  async wxLogin() {
-    wx.showLoading({ title: '登录中...' })
-
-    try {
-      const loginRes = await wx.login()
-
-      // 测试模式：直接使用测试用户
-      const testUserId = 'test_user_' + Date.now()
-      const testUserInfo = {
-        nickname: '测试用户',
-        avatar: '',
-        user_type: 'personal',
-        balance: 5000 // 50元 = 5000分
-      }
-
-      wx.setStorageSync('userId', testUserId)
-      wx.setStorageSync('userInfo', testUserInfo)
-
-      this.setData({
-        isLogin: true,
-        userInfo: testUserInfo,
-        balance: 5000,
-        displayBalance: '50.00'
-      })
-
-      wx.showToast({ title: '登录成功', icon: 'success' })
-    } catch (err) {
-      console.error('wxLogin error:', err)
-      wx.showToast({ title: '登录失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
+  // 跳转登录页面
+  goLogin() {
+    wx.navigateTo({
+      url: '/pages/login/login'
+    })
   },
 
   // 跳转充值
@@ -256,6 +190,17 @@ Page({
             userInfo: null,
             currentMode: 'personal'
           })
+
+          // 通知首页刷新为未登录状态
+          const pages = getCurrentPages()
+          const prevPage = pages[pages.length - 2]
+          if (prevPage && prevPage.route === 'pages/index/index') {
+            prevPage.setData({
+              isLogin: false,
+              userInfo: null,
+              displayBalance: '0.00'
+            })
+          }
 
           wx.showToast({ title: '已退出登录', icon: 'success' })
         }

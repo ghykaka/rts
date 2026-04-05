@@ -5,7 +5,7 @@ Page({
   data: {
     userInfo: null,
     isLogin: false,
-    isDebug: true, // 开发调试模式（临时开启用于测试）
+    displayBalance: '0.00',
     bannerList: [
       { id: 1, url: '/assets/banners/banner1.png' },
       { id: 2, url: '/assets/banners/banner2.png' }
@@ -22,8 +22,17 @@ Page({
   },
 
   onShow() {
-    if (app.globalData.userId) {
+    // 每次显示页面时检查登录状态
+    const userId = wx.getStorageSync('userId')
+    if (userId) {
       this.getUserInfo()
+    } else {
+      // 未登录，重置状态
+      this.setData({
+        isLogin: false,
+        userInfo: null,
+        displayBalance: '0.00'
+      })
     }
   },
 
@@ -31,10 +40,11 @@ Page({
     const userId = wx.getStorageSync('userId')
     const userInfo = wx.getStorageSync('userInfo')
 
-    if (userId) {
+    if (userId && userInfo) {
       this.setData({
         userInfo: userInfo,
-        isLogin: true
+        isLogin: true,
+        displayBalance: ((userInfo.balance || 0) / 100).toFixed(2)
       })
     }
   },
@@ -88,7 +98,15 @@ Page({
 
   async getUserInfo() {
     const userId = wx.getStorageSync('userId')
-    if (!userId) return
+    if (!userId) {
+      // 双重检查：storage 里没有就重置状态
+      this.setData({
+        isLogin: false,
+        userInfo: null,
+        displayBalance: '0.00'
+      })
+      return
+    }
 
     try {
       const res = await wx.cloud.callFunction({
@@ -96,10 +114,24 @@ Page({
         data: { userId }
       })
 
-      if (res.result.success) {
+      if (res.result && res.result.success) {
+        const userInfo = res.result.data
+        // 更新 storage 中的用户信息
+        wx.setStorageSync('userInfo', userInfo)
+        // 同时更新全局数据
+        app.globalData.userInfo = userInfo
+        
         this.setData({
-          userInfo: res.result.data,
-          isLogin: true
+          userInfo: userInfo,
+          isLogin: true,
+          displayBalance: ((userInfo.balance || 0) / 100).toFixed(2)
+        })
+      } else {
+        // 接口返回失败，可能用户已被删除，重置状态
+        this.setData({
+          isLogin: false,
+          userInfo: null,
+          displayBalance: '0.00'
         })
       }
     } catch (err) {
@@ -107,42 +139,11 @@ Page({
     }
   },
 
-  async wxLogin() {
-    wx.showLoading({ title: '登录中...' })
-
-    try {
-      const loginRes = await wx.login()
-      const userInfoRes = await wx.getUserProfile({ desc: '用于完善用户资料' })
-
-      const res = await wx.cloud.callFunction({
-        name: 'login',
-        data: {
-          code: loginRes.code,
-          userInfo: userInfoRes.userInfo
-        }
-      })
-
-      if (res.result.success) {
-        app.setUserInfo(userInfoRes.userInfo, res.result.data.userId)
-
-        this.setData({
-          userInfo: userInfoRes.userInfo,
-          isLogin: true
-        })
-
-        wx.showToast({
-          title: res.result.data.isNewUser ? '欢迎新用户，赠送5元余额！' : '登录成功',
-          icon: 'success'
-        })
-
-        this.getUserInfo()
-      }
-    } catch (err) {
-      console.error('wxLogin error:', err)
-      wx.showToast({ title: '登录失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
+  wxLogin() {
+    // 跳转到登录页面
+    wx.navigateTo({
+      url: '/pages/login/login'
+    })
   },
 
   // 跳转模板详情

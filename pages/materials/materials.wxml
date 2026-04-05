@@ -1,5 +1,17 @@
 <!--pages/materials/materials.wxml-->
 <view class="container">
+  <!-- 未登录提示 -->
+  <view class="not-login-tip" wx:if="{{!isLogin}}">
+    <view class="tip-content">
+      <image class="tip-icon" src="/assets/icons/empty.png" mode="aspectFit" />
+      <text class="tip-title">登录后可使用素材库</text>
+      <text class="tip-desc">注册登录后可上传管理自己的常用素材，方便AI生成时自动匹配</text>
+      <button class="tip-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <!-- 已登录内容 -->
+  <block wx:if="{{isLogin}}">
   <!-- 编辑分类按钮 -->
   <view class="category-header">
     <view class="category-tip">{{type === 'enterprise' ? '企业素材库，企业管理员可上传和管理素材' : '建议上传素材后及时修改素材名称，便于AI根据您的产品名称自动匹配相应的文案和设计'}}</view>
@@ -117,6 +129,7 @@
   <view class="upload-btn" bindtap="goToUpload" wx:if="{{canUpload}}">
     <text>+</text>
   </view>
+  </block>
 </view>
 
 <!-- 修改素材分类弹框 -->

@@ -6,6 +6,57 @@
   height: 100vh;
 }
 
+/* 未登录提示 */
+.not-login-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 60rpx 40rpx;
+}
+
+.tip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tip-icon {
+  width: 200rpx;
+  height: 200rpx;
+  opacity: 0.5;
+  margin-bottom: 40rpx;
+}
+
+.tip-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.tip-desc {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 60rpx;
+}
+
+.tip-btn {
+  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+  border-radius: 44rpx;
+  padding: 24rpx 80rpx;
+}
+
+.tip-btn::after {
+  border: none;
+}
+
 /* 分类头部（编辑按钮） */
 .category-header {
   padding: 16rpx 20rpx;

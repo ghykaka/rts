@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "创建充值订单",
   "dependencies": {
-    "wx-server-sdk": "~2.6.3"
+    "wx-server-sdk": "~2.6.3",
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.0"
   }
 }

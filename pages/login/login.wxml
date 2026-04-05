@@ -5,13 +5,28 @@
     <text class="title">让她生！让她生！</text>
   </view>
 
-  <button class="btn-login" bindtap="wxLogin" loading="{{loading}}">
-    微信授权登录
-  </button>
-
-  <button class="btn-phone" open-type="getPhoneNumber" bindgetphonenumber="getPhoneNumber" loading="{{phoneLoading}}">
-    授权手机号登录
-  </button>
+  <!-- 登录按钮 -->
+  <view class="btn-wrapper">
+    <button
+      class="btn-login {{agreeProtocol ? '' : 'disabled'}}"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="getPhoneNumber"
+      disabled="{{!agreeProtocol}}"
+    >
+      微信手机号一键登录
+    </button>
+  </view>  
 
   <text class="tip">登录后享受更多功能，新用户赠送5元余额</text>
+
+  <!-- 服务协议勾选 -->
+  <view class="protocol-row">
+    <view class="checkbox-wrapper" bindtap="toggleProtocol">
+      <view class="checkbox {{agreeProtocol ? 'checked' : ''}}">
+        <text class="check-icon" wx:if="{{agreeProtocol}}">✓</text>
+      </view>
+    </view>
+    <text class="protocol-text">我已阅读并同意</text>
+    <text class="protocol-link" bindtap="viewProtocol">《服务协议》</text>
+  </view>
 </view>

@@ -1,0 +1,29 @@
+component: http
+name: admin-api
+inputs:
+  src: ./
+  frameworkVersion: 3
+  region: ap-guangzhou
+  runtime: Nodejs16.13
+  timeout: 30
+  memorySize: 256
+  entryFile: index.js
+  routes:
+    - path: /*
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+  cors:
+    origin: '*'
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    headers:
+      - Content-Type
+      - Authorization
