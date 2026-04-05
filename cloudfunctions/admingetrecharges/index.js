@@ -38,10 +38,10 @@ exports.main = async (event, context) => {
     if (startDate || endDate) {
       where.created_at = {}
       if (startDate) {
-        where.created_at.gte = new Date(startDate)
+        where.created_at.gte = startDate + 'T00:00:00.000Z'
       }
       if (endDate) {
-        where.created_at.lte = new Date(endDate + ' 23:59:59')
+        where.created_at.lte = endDate + 'T23:59:59.999Z'
       }
     }
 
