@@ -47,6 +47,19 @@ const api = {
     })
     return await res.json()
   },
+
+  // 更新企业余额
+  async updateEnterpriseBalance(id, balance, token) {
+    const res = await fetch(`${API_BASE_URL}/admin/enterprises/${id}/balance`, {
+      method: 'PUT',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ balance })
+    })
+    return await res.json()
+  },
   
   // 获取充值记录
   async getRecharges(params, token) {

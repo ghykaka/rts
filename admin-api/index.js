@@ -121,6 +121,29 @@ app.put('/admin/users/:id/balance', verifyAdmin, async (req, res) => {
   }
 })
 
+// 更新企业余额
+app.put('/admin/enterprises/:id/balance', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { balance } = req.body
+    // 直接操作数据库更新企业余额
+    const app = getCloudApp()
+    const db = app.database()
+    
+    const result = await db.collection('enterprises').doc(id).update({
+      data: {
+        balance: balance,
+        update_time: new Date()
+      }
+    })
+    
+    res.json({ success: true, data: result })
+  } catch (err) {
+    console.error('更新企业余额失败:', err)
+    res.status(500).json({ success: false, error: '更新企业余额失败' })
+  }
+})
+
 // 获取充值记录
 app.get('/admin/recharges', verifyAdmin, async (req, res) => {
   try {

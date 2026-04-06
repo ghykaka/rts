@@ -3,8 +3,8 @@
     <!-- 搜索栏 -->
     <el-card class="search-card">
       <el-form :inline="true" :model="searchForm">
-        <el-form-item label="用户ID">
-          <el-input v-model="searchForm.userId" placeholder="输入用户ID" clearable @keyup.enter="handleSearch" />
+        <el-form-item label="企业ID">
+          <el-input v-model="searchForm.userId" placeholder="输入企业ID" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="searchForm.phone" placeholder="输入手机号" clearable @keyup.enter="handleSearch" />
@@ -42,30 +42,30 @@
         <el-table-column label="管理员手机" width="150">
           <template #default="{ row }">
             <span>{{ row.phone || '-' }}</span>
-            <el-tooltip v-if="row._id" :content="'用户ID: ' + row._id" placement="top" effect="light">
+            <el-tooltip v-if="row._id" :content="'企业ID: ' + row._id" placement="top" effect="light">
               <el-icon class="user-id-icon" :size="14"><InfoFilled /></el-icon>
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="materialCount" label="素材数量" width="100">
-          <template #default="{ row }">
-            {{ row.materialCount || 0 }}
-          </template>
-        </el-table-column>
+        <el-table-column prop="materialCount" label="素材数量" width="100" />
         <el-table-column label="素材大小(MB)" width="120">
           <template #default="{ row }">
             {{ formatSize(row.materialSize) }}
           </template>
         </el-table-column>
-        <el-table-column prop="balance" label="余额" width="100">
+        <el-table-column prop="subAccountCount" label="子账号数量" width="100">
+          <template #default="{ row }">
+            {{ row.subAccountCount || 0 }}
+          </template>
+        </el-table-column>
+        <el-table-column label="余额" width="100">
           <template #default="{ row }">
             ¥ {{ ((row.balance || 0) / 100).toFixed(2) }}
           </template>
         </el-table-column>
-        <el-table-column prop="total_generated" label="生成次数" width="90" />
-        <el-table-column prop="created_at" label="注册时间" width="160">
+        <el-table-column label="注册时间" width="160">
           <template #default="{ row }">
-            {{ formatTime(row.created_at) }}
+            {{ formatTime(row.create_time) }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
@@ -91,9 +91,9 @@
     </el-card>
     
     <!-- 用户详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="企业用户详情" width="650px">
+    <el-dialog v-model="detailVisible" title="企业用户详情" width="800px">
       <el-descriptions :column="2" border v-if="currentUser">
-        <el-descriptions-item label="用户ID">{{ currentUser._id }}</el-descriptions-item>
+        <el-descriptions-item label="企业ID">{{ currentUser._id }}</el-descriptions-item>
         <el-descriptions-item label="用户类型">
           <el-tag type="success" size="small">企业</el-tag>
         </el-descriptions-item>
@@ -103,14 +103,36 @@
         <el-descriptions-item label="管理员昵称">{{ currentUser.nickName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="素材数量">{{ currentUser.materialCount || 0 }}</el-descriptions-item>
         <el-descriptions-item label="素材大小">{{ formatSize(currentUser.materialSize) }}</el-descriptions-item>
+        <el-descriptions-item label="子账号数量">{{ currentUser.subAccountCount || 0 }}</el-descriptions-item>
         <el-descriptions-item label="余额">
           ¥ {{ ((currentUser.balance || 0) / 100).toFixed(2) }}
         </el-descriptions-item>
-        <el-descriptions-item label="生成次数">{{ currentUser.total_generated || 0 }}</el-descriptions-item>
         <el-descriptions-item label="注册时间" :span="2">
-          {{ formatTime(currentUser.created_at) }}
+          {{ formatTime(currentUser.create_time) }}
         </el-descriptions-item>
       </el-descriptions>
+
+      <!-- 子账号列表 -->
+      <div class="sub-accounts-section" v-if="currentUser && currentUser.subAccounts && currentUser.subAccounts.length > 0">
+        <h4 class="sub-title">子账号列表</h4>
+        <el-table :data="currentUser.subAccounts" size="small" border>
+          <el-table-column prop="phone" label="手机号" width="150" />
+          <el-table-column prop="remark" label="备注名称" min-width="150">
+            <template #default="{ row }">
+              {{ row.remark || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column label="余额" width="120">
+            <template #default="{ row }">
+              ¥ {{ ((row.balance || 0) / 100).toFixed(2) }}
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div class="sub-accounts-section" v-else-if="currentUser">
+        <h4 class="sub-title">子账号列表</h4>
+        <el-empty description="暂无子账号" :image-size="60" />
+      </div>
     </el-dialog>
     
     <!-- 调整余额弹窗 -->
@@ -162,7 +184,7 @@ export default {
     const searchForm = reactive({
       userId: '',
       phone: '',
-      companyName: ''
+      enterpriseName: ''
     })
     const pagination = reactive({
       page: 1,
@@ -188,7 +210,7 @@ export default {
         const res = await api.getUsers({
           userId: searchForm.userId,
           phone: searchForm.phone,
-          userType: 'enterprise', // 固定查询企业用户
+          userType: 'enterprise',
           enterpriseName: searchForm.enterpriseName,
           page: pagination.page,
           pageSize: pagination.pageSize
@@ -246,7 +268,7 @@ export default {
           newBalance = Math.max(0, balanceForm.currentBalance - amountCent)
         }
         
-        const res = await api.updateUserBalance(balanceForm.userId, newBalance, token)
+        const res = await api.updateEnterpriseBalance(balanceForm.userId, newBalance, token)
         
         if (res.result && res.result.success) {
           ElMessage.success('余额更新成功')
@@ -337,5 +359,16 @@ export default {
   color: #409eff;
   cursor: pointer;
   vertical-align: middle;
+}
+
+.sub-accounts-section {
+  margin-top: 20px;
+}
+
+.sub-title {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #303133;
+  font-weight: 600;
 }
 </style>
