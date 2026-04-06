@@ -31,12 +31,12 @@
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column label="企业名称" min-width="180">
           <template #default="{ row }">
-            {{ row.enterprise_name || '-' }}
+            {{ row.company_name || '-' }}
           </template>
         </el-table-column>
         <el-table-column label="企业简称" width="120">
           <template #default="{ row }">
-            {{ row.enterprise_short_name || '-' }}
+            {{ row.company_short_name || '-' }}
           </template>
         </el-table-column>
         <el-table-column label="管理员手机" width="150">
@@ -97,8 +97,8 @@
         <el-descriptions-item label="用户类型">
           <el-tag type="success" size="small">企业</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="企业名称">{{ currentUser.enterprise_name || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="企业简称">{{ currentUser.enterprise_short_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="企业名称">{{ currentUser.company_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="企业简称">{{ currentUser.company_short_name || '-' }}</el-descriptions-item>
         <el-descriptions-item label="管理员手机">{{ currentUser.phone || '-' }}</el-descriptions-item>
         <el-descriptions-item label="管理员昵称">{{ currentUser.nickName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="素材数量">{{ currentUser.materialCount || 0 }}</el-descriptions-item>

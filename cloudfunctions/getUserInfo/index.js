@@ -19,8 +19,9 @@ exports.main = async (event, context) => {
     // 如果是企业用户，获取企业信息
     let enterpriseInfo = null
     if (userRes.data.user_type === 'enterprise' && userRes.data.industry) {
+      // 使用 admin_user_id 查询（企业注册时使用的字段）
       const entRes = await db.collection('enterprises').where({
-        owner_user_id: userId
+        admin_user_id: userId
       }).get()
       
       if (entRes.data && entRes.data.length > 0) {
