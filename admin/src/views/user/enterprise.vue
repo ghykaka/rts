@@ -34,12 +34,7 @@
             {{ row.company_name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="企业简称" width="120">
-          <template #default="{ row }">
-            {{ row.company_short_name || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column label="管理员手机" width="150">
+        <el-table-column label="管理员手机" width="130">
           <template #default="{ row }">
             <span>{{ row.phone || '-' }}</span>
             <el-tooltip v-if="row._id" :content="'企业ID: ' + row._id" placement="top" effect="light">
@@ -47,31 +42,26 @@
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column prop="materialCount" label="素材数量" width="100" />
-        <el-table-column label="素材大小(MB)" width="120">
+        <el-table-column label="子账号" width="80" align="center">
           <template #default="{ row }">
-            {{ formatSize(row.materialSize) }}
+            <el-tag type="info" size="small">{{ row.subAccountCount || 0 }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="subAccountCount" label="子账号数量" width="100">
-          <template #default="{ row }">
-            {{ row.subAccountCount || 0 }}
-          </template>
-        </el-table-column>
-        <el-table-column label="余额" width="100">
+        <el-table-column prop="materialCount" label="素材" width="70" align="center" />
+        <el-table-column label="余额" width="90" align="right">
           <template #default="{ row }">
             ¥ {{ ((row.balance || 0) / 100).toFixed(2) }}
           </template>
         </el-table-column>
-        <el-table-column label="注册时间" width="160">
+        <el-table-column label="注册时间" width="100">
           <template #default="{ row }">
-            {{ formatTime(row.create_time) }}
+            {{ formatTime(row.create_time).split(' ')[0] }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="handleView(row)">查看</el-button>
-            <el-button type="primary" link @click="handleEditBalance(row)">调整余额</el-button>
+            <el-button type="primary" link @click="handleView(row)">详情</el-button>
+            <el-button type="primary" link @click="handleEditBalance(row)">调余额</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -114,17 +104,17 @@
 
       <!-- 子账号列表 -->
       <div class="sub-accounts-section" v-if="currentUser && currentUser.subAccounts && currentUser.subAccounts.length > 0">
-        <h4 class="sub-title">子账号列表</h4>
-        <el-table :data="currentUser.subAccounts" size="small" border>
-          <el-table-column prop="phone" label="手机号" width="150" />
+        <h4 class="sub-title">子账号列表 ({{ currentUser.subAccounts.length }}个)</h4>
+        <el-table :data="currentUser.subAccounts" size="small" border max-height="300">
+          <el-table-column prop="phone" label="手机号" width="140" />
           <el-table-column prop="remark" label="备注名称" min-width="150">
             <template #default="{ row }">
-              {{ row.remark || '-' }}
+              <span :class="{ 'empty-text': !row.remark }">{{ row.remark || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="余额" width="120">
+          <el-table-column label="余额" width="100" align="right">
             <template #default="{ row }">
-              ¥ {{ ((row.balance || 0) / 100).toFixed(2) }}
+              <span class="balance-text">¥ {{ ((row.balance || 0) / 100).toFixed(2) }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -370,5 +360,14 @@ export default {
   font-size: 14px;
   color: #303133;
   font-weight: 600;
+}
+
+.empty-text {
+  color: #c0c4cc;
+}
+
+.balance-text {
+  color: #67c23a;
+  font-weight: 500;
 }
 </style>

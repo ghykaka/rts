@@ -79,6 +79,29 @@
 - **充值**：微信支付充值余额
 - **企业功能**：企业账户、员工管理、素材库
 
+### 7. 部署
+
+项目提供一键部署脚本：
+
+```bash
+# 交互式部署（会显示菜单）
+./deploy.sh
+
+# 快速部署（无需交互）
+./deploy-fast.sh cloud    # 仅部署云函数
+./deploy-fast.sh api      # 仅部署后台API
+./deploy-fast.sh all      # 全部部署
+```
+
+**云函数部署**：
+- 使用 `tcb CLI` 自动部署所有云函数
+- 会自动安装每个云函数的依赖
+- 需要先登录：`tcb login`
+
+**后台 API 部署**：
+- Railway 会自动检测 GitHub 代码变更并部署
+- 或使用 railway CLI：`railway up`
+
 ## 开发指南
 
 ### 添加模板
