@@ -1,16 +1,11 @@
 {
   "version": "2.0",
+  "envId": "liandaofutou-2gdayw0068d938b3",
   "apps": [
     {
       "name": "admin",
       "type": "static",
-      "framework": "vue",
-      "build": {
-        "index": "admin/index.html",
-        "router": "history",
-        "dist": "admin/dist",
-        "command": "cd admin && npm install && npm run build"
-      }
+      "framework": "vue"
     }
   ]
 }

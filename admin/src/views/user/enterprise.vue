@@ -10,7 +10,7 @@
           <el-input v-model="searchForm.phone" placeholder="输入手机号" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item label="企业名称">
-          <el-input v-model="searchForm.companyName" placeholder="输入企业名称" clearable @keyup.enter="handleSearch" />
+          <el-input v-model="searchForm.enterpriseName" placeholder="输入企业名称" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
@@ -31,12 +31,12 @@
       <el-table :data="tableData" v-loading="loading" stripe>
         <el-table-column label="企业名称" min-width="180">
           <template #default="{ row }">
-            {{ row.companyName || '-' }}
+            {{ row.enterprise_name || '-' }}
           </template>
         </el-table-column>
         <el-table-column label="企业简称" width="120">
           <template #default="{ row }">
-            {{ row.companyShortName || '-' }}
+            {{ row.enterprise_short_name || '-' }}
           </template>
         </el-table-column>
         <el-table-column label="管理员手机" width="150">
@@ -97,8 +97,8 @@
         <el-descriptions-item label="用户类型">
           <el-tag type="success" size="small">企业</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="企业名称">{{ currentUser.companyName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="企业简称">{{ currentUser.companyShortName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="企业名称">{{ currentUser.enterprise_name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="企业简称">{{ currentUser.enterprise_short_name || '-' }}</el-descriptions-item>
         <el-descriptions-item label="管理员手机">{{ currentUser.phone || '-' }}</el-descriptions-item>
         <el-descriptions-item label="管理员昵称">{{ currentUser.nickName || '-' }}</el-descriptions-item>
         <el-descriptions-item label="素材数量">{{ currentUser.materialCount || 0 }}</el-descriptions-item>
@@ -186,8 +186,10 @@ export default {
       try {
         const token = store.state.token
         const res = await api.getUsers({
-          ...searchForm,
+          userId: searchForm.userId,
+          phone: searchForm.phone,
           userType: 'enterprise', // 固定查询企业用户
+          enterpriseName: searchForm.enterpriseName,
           page: pagination.page,
           pageSize: pagination.pageSize
         }, token)
@@ -212,7 +214,7 @@ export default {
     const handleReset = () => {
       searchForm.userId = ''
       searchForm.phone = ''
-      searchForm.companyName = ''
+      searchForm.enterpriseName = ''
       handleSearch()
     }
     

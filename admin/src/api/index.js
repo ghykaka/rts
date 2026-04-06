@@ -22,12 +22,12 @@ const api = {
   },
   
   // 获取用户列表（支持类型筛选和素材统计）
-  async getUsers({ page = 1, pageSize = 20, userId, phone, userType, companyName }, token) {
+  async getUsers({ page = 1, pageSize = 20, userId, phone, userType, enterpriseName }, token) {
     let url = `${API_BASE_URL}/admin/users?page=${page}&pageSize=${pageSize}`
     if (userId) url += `&userId=${encodeURIComponent(userId)}`
     if (phone) url += `&phone=${encodeURIComponent(phone)}`
     if (userType) url += `&userType=${userType}`
-    if (companyName) url += `&companyName=${encodeURIComponent(companyName)}`
+    if (enterpriseName) url += `&enterpriseName=${encodeURIComponent(enterpriseName)}`
     
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}` }
