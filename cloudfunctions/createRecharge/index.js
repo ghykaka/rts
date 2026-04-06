@@ -5,10 +5,10 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
-// 普通商户配置 - 使用子商户号
-const MCH_ID = '1711788352'           // 商户号（子商户）
-const APPID = 'wxe2093480cd4b51cb'    // 小程序 AppID
-const API_KEY = 'h21kUY34j4Liht68oPqweRY109BdmT4u'  // 子商户 API 密钥
+// 普通商户配置 - 从环境变量读取
+const MCH_ID = process.env.MCH_ID || '1711788352'
+const APPID = process.env.APPID || 'wxe2093480cd4b51cb'
+const API_KEY = process.env.WEIXIN_API_KEY || ''
 
 // 生成随机字符串
 function generateNonceStr() {

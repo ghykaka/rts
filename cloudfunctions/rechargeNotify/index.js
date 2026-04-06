@@ -5,9 +5,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
-// 商户配置
-const MCH_ID = '1711788352'           // 商户号（子商户）
-const API_KEY = 'h21kUY34j4Liht68oPqweRY109BdmT4u'      // 子商户 API 密钥
+// 商户配置 - 从环境变量读取
+const MCH_ID = process.env.MCH_ID || '1711788352'
+const API_KEY = process.env.WEIXIN_API_KEY || ''
 
 // 解析 XML（支持 CDATA 格式）
 function parseXML(xml) {
