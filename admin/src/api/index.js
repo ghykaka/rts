@@ -106,6 +106,17 @@ const api = {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     return await res.json()
+  },
+
+  // 获取 Coze 工作流列表
+  async getCozeWorkflows({ pageNum = 1, pageSize = 30, workflowMode }, token) {
+    let url = `${API_BASE_URL}/admin/coze/workflows?pageNum=${pageNum}&pageSize=${pageSize}`
+    if (workflowMode) url += `&workflowMode=${workflowMode}`
+
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    return await res.json()
   }
 }
 

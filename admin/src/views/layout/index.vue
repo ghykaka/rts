@@ -36,6 +36,11 @@
           <el-icon><Folder /></el-icon>
           <template #title>素材管理</template>
         </el-menu-item>
+        
+        <el-menu-item index="/coze">
+          <el-icon><Grid /></el-icon>
+          <template #title>Coze工作流</template>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     

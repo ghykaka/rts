@@ -44,7 +44,7 @@ exports.main = async (event, context) => {
 
       const userList = entListResult.data || []
 
-      // 获取每个企业的素材统计
+      // 获取每个企业的素材统计和子账号信息
       for (const ent of userList) {
         // 统计该企业的素材数量
         const countRes = await db.collection('materials')
@@ -62,6 +62,18 @@ exports.main = async (event, context) => {
         // 管理员信息
         ent.phone = ent.admin_phone || ''
         ent.nickName = ent.admin_nickname || ''
+
+        // 子账号统计 - 从 users 表查询
+        const subAccountRes = await db.collection('users')
+          .where({ enterprise_id: ent._id })
+          .field({ phone: true, remark: true, balance: true })
+          .get()
+        ent.subAccountCount = subAccountRes.data.length
+        ent.subAccounts = subAccountRes.data.map(sa => ({
+          phone: sa.phone || '',
+          remark: sa.remark || '',
+          balance: sa.balance || 0
+        }))
       }
 
       console.log('企业查询结果:', {

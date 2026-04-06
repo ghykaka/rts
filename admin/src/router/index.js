@@ -46,6 +46,12 @@ const routes = [
         name: 'Material',
         component: () => import('../views/material/index.vue'),
         meta: { title: '素材管理', icon: 'Folder' }
+      },
+      {
+        path: 'coze',
+        name: 'CozeWorkflows',
+        component: () => import('../views/coze/index.vue'),
+        meta: { title: 'Coze工作流', icon: 'Connection' }
       }
     ]
   },

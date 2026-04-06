@@ -29,9 +29,14 @@
       </template>
       
       <el-table :data="tableData" v-loading="loading" stripe>
-        <el-table-column label="企业名称" min-width="180">
+        <el-table-column label="企业名称" min-width="140">
           <template #default="{ row }">
             {{ row.company_name || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="企业简称" width="120">
+          <template #default="{ row }">
+            {{ row.company_short_name || '-' }}
           </template>
         </el-table-column>
         <el-table-column label="管理员手机" width="130">

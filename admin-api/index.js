@@ -228,6 +228,22 @@ app.delete('/admin/materials/:id', verifyAdmin, async (req, res) => {
   }
 })
 
+// 获取 Coze 工作流列表
+app.get('/admin/coze/workflows', verifyAdmin, async (req, res) => {
+  try {
+    const { pageNum = 1, pageSize = 30, workflowMode } = req.query
+    const result = await callCloudFunction('getcozeworkflows', {
+      pageNum: parseInt(pageNum),
+      pageSize: parseInt(pageSize),
+      workflowMode: workflowMode || undefined
+    })
+    res.json(result)
+  } catch (err) {
+    console.error('获取 Coze 工作流列表失败:', err)
+    res.status(500).json({ success: false, error: '获取 Coze 工作流列表失败' })
+  }
+})
+
 // 根路由 - 返回前端页面
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'))
