@@ -16,25 +16,28 @@ exports.main = async (event, context) => {
       return { success: false, error: '用户不存在' }
     }
 
-    // 如果是企业用户，获取企业信息
-    let enterpriseInfo = null
-    if (userRes.data.user_type === 'enterprise' && userRes.data.industry) {
-      // 使用 admin_user_id 查询（企业注册时使用的字段）
-      const entRes = await db.collection('enterprises').where({
-        admin_user_id: userId
-      }).get()
-      
-      if (entRes.data && entRes.data.length > 0) {
-        enterpriseInfo = entRes.data[0]
+    const userData = userRes.data
+    
+    // 如果用户有 enterprise_id，说明是企业管理员
+    // 即使 user_type 字段没有更新，也能正确识别
+    if (userData.enterprise_id) {
+      try {
+        const entRes = await db.collection('enterprises').doc(userData.enterprise_id).get()
+        if (entRes.data) {
+          // 更新用户数据，标记为企业用户
+          userData.user_type = 'enterprise'
+          userData.company_name = entRes.data.company_name
+          userData.company_short_name = entRes.data.company_short_name
+          userData.industry = entRes.data.industry
+        }
+      } catch (entErr) {
+        console.error('get enterprise info error:', entErr)
       }
     }
 
     return {
       success: true,
-      data: {
-        ...userRes.data,
-        enterpriseInfo: enterpriseInfo
-      }
+      data: userData
     }
 
   } catch (err) {

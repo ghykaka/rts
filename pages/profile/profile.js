@@ -9,7 +9,10 @@ Page({
     displayBalance: '0.00',
     currentMode: 'personal', // 当前模式：personal 或 enterprise
     personalBalance: '0.00', // 个人余额
-    enterpriseBalance: '0.00' // 企业余额
+    enterpriseBalance: '0.00', // 企业余额
+    userTypeText: '登录后享受更多功能', // 用户类型文本
+    hasEnterprise: false, // 是否有企业账号
+    currentBalance: '0.00' // 当前显示的余额
   },
 
   onLoad() {
@@ -23,29 +26,48 @@ Page({
   checkLogin() {
     const userId = wx.getStorageSync('userId')
     const userInfo = wx.getStorageSync('userInfo')
+    console.log('checkLogin:', { userId, userInfo })
 
     if (userId && userInfo) {
       const savedMode = wx.getStorageSync('currentMode') || 'personal'
+      const hasEnterprise = userInfo.user_type === 'enterprise'
+      
       this.setData({
         isLogin: true,
         userInfo: userInfo,
-        currentMode: savedMode
+        currentMode: savedMode,
+        hasEnterprise: hasEnterprise,
+        userTypeText: this.getUserTypeText(userInfo, savedMode),
+        currentBalance: ((userInfo.balance || 0) / 100).toFixed(2)
       })
       this.setBalances(userInfo, savedMode)
     } else {
-      this.setData({ isLogin: false })
+      this.setData({ isLogin: false, userTypeText: '登录后享受更多功能' })
     }
+  },
+  
+  // 获取用户类型文本
+  getUserTypeText(userInfo, mode) {
+    if (mode === 'enterprise') {
+      return userInfo.company_short_name || userInfo.company_name || '企业会员'
+    }
+    return '普通会员'
   },
 
   async getUserInfo() {
     const userId = wx.getStorageSync('userId')
-    if (!userId) return
+    if (!userId) {
+      console.log('getUserInfo: no userId')
+      return
+    }
 
     try {
+      console.log('getUserInfo: calling cloud function...')
       const res = await wx.cloud.callFunction({
         name: 'getUserInfo',
         data: { userId }
       })
+      console.log('getUserInfo result:', res)
 
       if (res.result && res.result.success) {
         const user = res.result.data
@@ -53,14 +75,21 @@ Page({
         wx.setStorageSync('userInfo', user)
         app.globalData.userInfo = user
         
+        const hasEnterprise = user.user_type === 'enterprise'
         this.setData({
           userInfo: user,
-          isLogin: true
+          isLogin: true,
+          hasEnterprise: hasEnterprise,
+          userTypeText: this.getUserTypeText(user, this.data.currentMode),
+          currentBalance: ((user.balance || 0) / 100).toFixed(2)
         })
         this.setBalances(user, this.data.currentMode)
+      } else {
+        console.log('getUserInfo failed:', res.result?.error)
       }
     } catch (err) {
       console.error('getUserInfo error:', err)
+      // 即使出错也不影响页面显示
     }
   },
 
@@ -70,12 +99,14 @@ Page({
 
     // 统一使用 balance 字段
     const balance = userInfo.balance || 0
+    const displayBalance = (balance / 100).toFixed(2)
 
     this.setData({
       balance: balance,
-      displayBalance: (balance / 100).toFixed(2),
-      enterpriseBalance: (balance / 100).toFixed(2),
-      personalBalance: (balance / 100).toFixed(2)
+      displayBalance: displayBalance,
+      enterpriseBalance: displayBalance,
+      personalBalance: displayBalance,
+      currentBalance: displayBalance
     })
   },
 
@@ -86,13 +117,21 @@ Page({
       return
     }
 
-    this.setData({ currentMode: 'enterprise' })
+    this.setData({ 
+      currentMode: 'enterprise',
+      userTypeText: this.getUserTypeText(this.data.userInfo, 'enterprise'),
+      currentBalance: ((this.data.userInfo.balance || 0) / 100).toFixed(2)
+    })
     wx.setStorageSync('currentMode', 'enterprise')
   },
 
   // 切换到个人模式
   switchToPersonal() {
-    this.setData({ currentMode: 'personal' })
+    this.setData({ 
+      currentMode: 'personal',
+      userTypeText: this.getUserTypeText(this.data.userInfo, 'personal'),
+      currentBalance: ((this.data.userInfo.balance || 0) / 100).toFixed(2)
+    })
     wx.setStorageSync('currentMode', 'personal')
   },
 
@@ -188,7 +227,10 @@ Page({
           this.setData({
             isLogin: false,
             userInfo: null,
-            currentMode: 'personal'
+            currentMode: 'personal',
+            userTypeText: '登录后享受更多功能',
+            hasEnterprise: false,
+            currentBalance: '0.00'
           })
 
           // 通知首页刷新为未登录状态

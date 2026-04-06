@@ -6,18 +6,14 @@
       <image class="avatar" src="{{userInfo.avatar || '/assets/icons/default-avatar.png'}}" mode="aspectFill" />
       <view class="user-detail">
         <text class="nickname">{{isLogin ? (userInfo.nickname || '微信用户') : '点击登录'}}</text>
-        <text class="user-type">{{isLogin ? (currentMode === 'enterprise' ? (userInfo.company_short_name || userInfo.company_name || '企业会员') : '普通会员') : '登录后享受更多功能'}}</text>
+        <text class="user-type">{{userTypeText}}</text>
       </view>
     </view>
     <!-- 余额（已登录显示） -->
     <view class="balance-row" wx:if="{{isLogin}}" catchtap="goRecharge">
-      <view class="balance-item" wx:if="{{currentMode === 'personal'}}">
-        <text class="balance-label">个人余额</text>
-        <text class="balance-amount">¥{{personalBalance}}</text>
-      </view>
-      <view class="balance-item" wx:if="{{currentMode === 'enterprise'}}">
-        <text class="balance-label">企业余额</text>
-        <text class="balance-amount">¥{{enterpriseBalance}}</text>
+      <view class="balance-item">
+        <text class="balance-label">{{currentMode === 'enterprise' ? '企业余额' : '个人余额'}}</text>
+        <text class="balance-amount">¥{{currentBalance}}</text>
       </view>
       <view class="btn-recharge" catchtap="goRecharge">
         <text>充值</text>
@@ -26,7 +22,7 @@
   </view>
 
   <!-- 会员切换标签（企业用户） -->
-  <view class="role-switch" wx:if="{{isLogin && userInfo.user_type === 'enterprise'}}">
+  <view class="role-switch" wx:if="{{isLogin && hasEnterprise}}">
     <text class="role-tag {{currentMode === 'enterprise' ? 'active' : ''}}" bindtap="switchToEnterprise">企业</text>
     <text class="role-tag {{currentMode === 'personal' ? 'active' : ''}}" bindtap="switchToPersonal">个人</text>
   </view>
@@ -48,7 +44,7 @@
     </view>
 
     <!-- 成为企业用户 -->
-    <view class="menu-card" wx:if="{{isLogin && currentMode === 'personal' && userInfo.user_type !== 'enterprise'}}">
+    <view class="menu-card" wx:if="{{isLogin && currentMode === 'personal' && !hasEnterprise}}">
       <view class="menu-item" bindtap="goEnterpriseRegister">
         <image class="menu-icon" src="/assets/icons/user-qiye.png" />
         <text class="menu-text">成为企业用户</text>
