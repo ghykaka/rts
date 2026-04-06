@@ -140,7 +140,9 @@ Page({
           company_short_name: companyShortName,
           industry: industry,
           admin_user_id: userId,
+          admin_phone: userInfo?.phone || '',
           admin_nickname: userInfo?.nickname || '',
+          balance: 0,  // 初始化企业余额为0
           create_time: db.serverDate(),
           update_time: db.serverDate()
         }

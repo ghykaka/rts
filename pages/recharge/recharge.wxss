@@ -4,7 +4,17 @@
   font-size: 36rpx;
   font-weight: bold;
   text-align: center;
-  padding: 40rpx 0;
+  padding: 40rpx 0 20rpx;
+}
+
+.company-name-row {
+  text-align: center;
+  padding-bottom: 20rpx;
+}
+
+.company-name {
+  font-size: 28rpx;
+  color: #666;
 }
 
 .amount-section {

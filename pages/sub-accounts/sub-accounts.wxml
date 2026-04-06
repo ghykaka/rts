@@ -19,9 +19,6 @@
 
   <button class="add-btn" bindtap="showAddModal">+ 添加成员</button>
 
-  <!-- 测试按钮 -->
-  <button class="test-btn" bindtap="createTestAccount">创建测试子账号(测试用)</button>
-
   <view class="account-list">
     <view class="account-item" wx:for="{{subAccounts}}" wx:key="_id">
       <view class="account-info">
@@ -55,7 +52,6 @@
   <view class="empty" wx:if="{{subAccounts.length === 0}}">
     <text class="empty-text">暂无子账号</text>
     <text class="empty-tip">点击上方按钮添加成员</text>
-    <text class="test-tip">或点击"创建测试子账号"测试页面效果</text>
   </view>
 </view>
 

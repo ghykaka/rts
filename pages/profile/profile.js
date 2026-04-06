@@ -12,7 +12,9 @@ Page({
     enterpriseBalance: '0.00', // 企业余额
     userTypeText: '登录后享受更多功能', // 用户类型文本
     hasEnterprise: false, // 是否有企业账号
-    currentBalance: '0.00' // 当前显示的余额
+    currentBalance: '0.00', // 当前显示的余额
+    rechargeButtonText: '充值', // 充值按钮文字
+    isEnterpriseAdmin: false // 是否是企业管理员
   },
 
   onLoad() {
@@ -30,20 +32,35 @@ Page({
 
     if (userId && userInfo) {
       const savedMode = wx.getStorageSync('currentMode') || 'personal'
-      const hasEnterprise = userInfo.user_type === 'enterprise'
+      // 同时检查 user_type 和 enterprise_id
+      const hasEnterprise = userInfo.user_type === 'enterprise' || userInfo.enterprise_id
+      // 企业管理员判断：必须有企业账号且角色是 admin
+      const isEnterpriseAdmin = hasEnterprise && userInfo.role === 'admin'
+      // 充值按钮文字
+      const rechargeButtonText = this.getRechargeButtonText(savedMode, isEnterpriseAdmin)
       
       this.setData({
         isLogin: true,
         userInfo: userInfo,
         currentMode: savedMode,
         hasEnterprise: hasEnterprise,
+        isEnterpriseAdmin: isEnterpriseAdmin,
         userTypeText: this.getUserTypeText(userInfo, savedMode),
-        currentBalance: ((userInfo.balance || 0) / 100).toFixed(2)
+        currentBalance: ((userInfo.balance || 0) / 100).toFixed(2),
+        rechargeButtonText: rechargeButtonText
       })
       this.setBalances(userInfo, savedMode)
     } else {
-      this.setData({ isLogin: false, userTypeText: '登录后享受更多功能' })
+      this.setData({ isLogin: false, userTypeText: '登录后享受更多功能', rechargeButtonText: '充值' })
     }
+  },
+  
+  // 获取充值按钮文字
+  getRechargeButtonText(mode, isAdmin) {
+    if (!isAdmin) {
+      return '充值'
+    }
+    return mode === 'enterprise' ? '企业账户充值' : '个人账户充值'
   },
   
   // 获取用户类型文本
@@ -75,13 +92,19 @@ Page({
         wx.setStorageSync('userInfo', user)
         app.globalData.userInfo = user
         
-        const hasEnterprise = user.user_type === 'enterprise'
+        // 同时检查 user_type 和 enterprise_id
+        const hasEnterprise = user.user_type === 'enterprise' || user.enterprise_id
+        const isEnterpriseAdmin = hasEnterprise && user.role === 'admin'
+        const rechargeButtonText = this.getRechargeButtonText(this.data.currentMode, isEnterpriseAdmin)
+        
         this.setData({
           userInfo: user,
           isLogin: true,
           hasEnterprise: hasEnterprise,
+          isEnterpriseAdmin: isEnterpriseAdmin,
           userTypeText: this.getUserTypeText(user, this.data.currentMode),
-          currentBalance: ((user.balance || 0) / 100).toFixed(2)
+          currentBalance: ((user.balance || 0) / 100).toFixed(2),
+          rechargeButtonText: rechargeButtonText
         })
         this.setBalances(user, this.data.currentMode)
       } else {
@@ -97,15 +120,19 @@ Page({
   setBalances(userInfo, mode) {
     if (!userInfo) return
 
-    // 统一使用 balance 字段
-    const balance = userInfo.balance || 0
-    const displayBalance = (balance / 100).toFixed(2)
+    // 区分个人余额和企业余额
+    const personalBalance = userInfo.balance || 0
+    const enterpriseBalance = userInfo.enterprise_balance || 0
+    
+    // 根据模式决定显示哪个余额
+    const currentBalance = mode === 'enterprise' ? enterpriseBalance : personalBalance
+    const displayBalance = (currentBalance / 100).toFixed(2)
 
     this.setData({
-      balance: balance,
+      balance: personalBalance,
       displayBalance: displayBalance,
-      enterpriseBalance: displayBalance,
-      personalBalance: displayBalance,
+      enterpriseBalance: (enterpriseBalance / 100).toFixed(2),
+      personalBalance: (personalBalance / 100).toFixed(2),
       currentBalance: displayBalance
     })
   },
@@ -117,20 +144,24 @@ Page({
       return
     }
 
+    const enterpriseBalance = this.data.userInfo.enterprise_balance || 0
     this.setData({ 
       currentMode: 'enterprise',
       userTypeText: this.getUserTypeText(this.data.userInfo, 'enterprise'),
-      currentBalance: ((this.data.userInfo.balance || 0) / 100).toFixed(2)
+      currentBalance: (enterpriseBalance / 100).toFixed(2),
+      rechargeButtonText: this.getRechargeButtonText('enterprise', this.data.isEnterpriseAdmin)
     })
     wx.setStorageSync('currentMode', 'enterprise')
   },
 
   // 切换到个人模式
   switchToPersonal() {
+    const personalBalance = this.data.userInfo.balance || 0
     this.setData({ 
       currentMode: 'personal',
       userTypeText: this.getUserTypeText(this.data.userInfo, 'personal'),
-      currentBalance: ((this.data.userInfo.balance || 0) / 100).toFixed(2)
+      currentBalance: (personalBalance / 100).toFixed(2),
+      rechargeButtonText: this.getRechargeButtonText('personal', this.data.isEnterpriseAdmin)
     })
     wx.setStorageSync('currentMode', 'personal')
   },
@@ -144,8 +175,9 @@ Page({
 
   // 跳转充值
   goRecharge() {
+    // 传递当前模式给充值页面
     wx.navigateTo({
-      url: `/pages/recharge/recharge`
+      url: `/pages/recharge/recharge?mode=${this.data.currentMode}`
     })
   },
 

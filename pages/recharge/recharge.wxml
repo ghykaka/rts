@@ -1,6 +1,9 @@
 <!--pages/recharge/recharge.wxml-->
 <view class="container">
-  <view class="title">{{type === 'enterprise' ? '企业' : '个人'}}账户充值</view>
+  <view class="title">{{pageTitle}}</view>
+  <view class="company-name-row" wx:if="{{showCompanyName && companyName}}">
+    <text class="company-name">{{companyName}}</text>
+  </view>
 
   <view class="amount-section">
     <text class="label">选择金额</text>

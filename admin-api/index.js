@@ -84,7 +84,7 @@ app.get('/admin/users', verifyAdmin, async (req, res) => {
       userId: userId || undefined,
       phone: phone || undefined,
       userType: userType || undefined,
-      companyName: enterpriseName || undefined
+      enterpriseName: enterpriseName || undefined
     })
     res.json(result)
   } catch (err) {

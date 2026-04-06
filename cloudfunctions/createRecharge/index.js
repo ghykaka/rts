@@ -81,7 +81,7 @@ exports.main = async (event, context) => {
       appid: APPID,            // 小程序 AppID
       mch_id: MCH_ID,          // 商户号
       nonce_str: nonceStr,
-      body: '让她生-余额充值',
+      body: type === 'enterprise' ? '让她生-企业账户充值' : '让她生-个人账户充值',
       out_trade_no: outTradeNo,
       total_fee: totalFee,
       spbill_create_ip: wxContext.CLIENTIP || '127.0.0.1',

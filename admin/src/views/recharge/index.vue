@@ -66,6 +66,13 @@
             </span>
           </template>
         </el-table-column>
+        <el-table-column label="充值账户" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.type === 'enterprise' ? 'warning' : 'info'" size="small">
+              {{ row.type === 'enterprise' ? '企业' : '个人' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="amount_cent" label="充值金额" width="100">
           <template #default="{ row }">
             ¥ {{ ((row.amount_cent || 0) / 100).toFixed(2) }}

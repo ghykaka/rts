@@ -16,7 +16,7 @@
         <text class="balance-amount">¥{{currentBalance}}</text>
       </view>
       <view class="btn-recharge" catchtap="goRecharge">
-        <text>充值</text>
+        <text>{{rechargeButtonText}}</text>
       </view>
     </view>
   </view>

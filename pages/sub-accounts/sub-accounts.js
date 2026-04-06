@@ -24,42 +24,12 @@ Page({
   },
 
   onLoad() {
-    // 临时：测试时更新余额为50元，测试完成后删除此段代码
-    this.updateBalanceTo50()
     this.loadSubAccounts()
   },
 
   onShow() {
     this.loadUserInfo()
     this.loadSubAccounts()
-  },
-
-  // 临时方法：更新企业账号余额为50元
-  async updateBalanceTo50() {
-    try {
-      const db = wx.cloud.database()
-      const userInfo = wx.getStorageSync('userInfo')
-
-      if (!userInfo || !userInfo._id) {
-        return
-      }
-
-      await db.collection('users').doc(userInfo._id).update({
-        data: {
-          balance: 5000,
-          update_time: db.serverDate()
-        }
-      })
-
-      wx.setStorageSync('userInfo', {
-        ...userInfo,
-        balance: 5000
-      })
-
-      console.log('余额已更新为50元')
-    } catch (err) {
-      console.error('更新余额失败:', err)
-    }
   },
 
   // 加载用户信息
@@ -71,7 +41,29 @@ Page({
         return
       }
 
-      // 更新显示的余额
+      const db = wx.cloud.database()
+      const userId = wx.getStorageSync('userId')
+
+      // 从企业表获取企业余额
+      if (userInfo.enterprise_id) {
+        const entRes = await db.collection('enterprises').doc(userInfo.enterprise_id).get()
+        if (entRes.data) {
+          const enterpriseBalance = entRes.data.balance || 0
+          this.setData({
+            userInfo: userInfo,
+            companyBalance: (enterpriseBalance / 100).toFixed(2)
+          })
+          
+          // 更新 storage 中的企业余额
+          wx.setStorageSync('userInfo', {
+            ...userInfo,
+            enterprise_balance: enterpriseBalance
+          })
+          return
+        }
+      }
+
+      // 如果没有企业信息，显示个人余额
       const balanceCents = userInfo.balance || 0
       this.setData({
         userInfo: userInfo,
@@ -79,8 +71,7 @@ Page({
       })
 
       // 从数据库重新获取最新余额
-      const db = wx.cloud.database()
-      const userRes = await db.collection('users').doc(userInfo._id).get()
+      const userRes = await db.collection('users').doc(userId).get()
       if (userRes.data) {
         const latestBalance = userRes.data.balance || 0
         wx.setStorageSync('userInfo', {
@@ -131,7 +122,20 @@ Page({
 
     // 计算所有子账号余额总和
     const totalSubBalance = formattedAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0)
-    const enterpriseBalance = userInfo.balance || 0
+    
+    // 从 enterprises 表获取企业余额
+    let enterpriseBalance = 0
+    if (userInfo.enterprise_id) {
+      try {
+        const entRes = await db.collection('enterprises').doc(userInfo.enterprise_id).get()
+        if (entRes.data) {
+          enterpriseBalance = entRes.data.balance || 0
+        }
+      } catch (e) {
+        console.error('获取企业余额失败:', e)
+      }
+    }
+    
     console.log(`企业余额: ¥${(enterpriseBalance / 100).toFixed(2)}, 子账号总余额: ¥${(totalSubBalance / 100).toFixed(2)}, 可分配: ¥${((enterpriseBalance - totalSubBalance) / 100).toFixed(2)}`)
     } catch (err) {
       console.error('loadSubAccounts error:', err)
@@ -236,14 +240,14 @@ Page({
           company_short_name: userInfo.company_short_name,
           industry: userInfo.industry,
           role: 'member', // 普通成员
-          balance: db.command.inc(newBalance), // 增加余额
+          balance: db.command.inc(newBalance), // 增加子账号余额
           remark: this.data.newRemark || '', // 添加备注名称
           update_time: db.serverDate()
         }
       })
 
-      // 扣除管理员余额
-      await db.collection('users').doc(userInfo._id).update({
+      // 扣除企业余额
+      await db.collection('enterprises').doc(userInfo.enterprise_id).update({
         data: {
           balance: db.command.inc(-newBalance),
           update_time: db.serverDate()
@@ -291,55 +295,6 @@ Page({
   // 修改备注弹框输入框失去焦点
   onEditRemarkInputBlur() {
     this.setData({ editRemarkModalKeyboardUp: false })
-  },
-
-  // 创建测试子账号
-  async createTestAccount() {
-    wx.showLoading({ title: '创建中...' })
-
-    try {
-      const db = wx.cloud.database()
-      const userInfo = wx.getStorageSync('userInfo')
-
-      if (!userInfo || !userInfo.enterprise_id) {
-        wx.hideLoading()
-        wx.showToast({ title: '请先注册企业', icon: 'none' })
-        return
-      }
-
-      // 创建测试用户
-      const testUserId = 'test_member_' + Date.now()
-      const testUserInfo = {
-        nickname: '测试成员' + Math.floor(Math.random() * 1000),
-        avatar: '',
-        phone: '138' + Math.floor(Math.random() * 900000000 + 100000000),
-        user_type: 'enterprise',
-        enterprise_id: userInfo.enterprise_id,
-        company_name: userInfo.company_name,
-        company_short_name: userInfo.company_short_name,
-        industry: userInfo.industry,
-        role: 'member',
-        balance: 0
-      }
-
-      await db.collection('users').add({
-        data: {
-          ...testUserInfo,
-          _id: testUserId,
-          create_time: db.serverDate(),
-          update_time: db.serverDate()
-        }
-      })
-
-      wx.hideLoading()
-      wx.showToast({ title: '创建成功', icon: 'success' })
-
-      this.loadSubAccounts()
-    } catch (err) {
-      console.error('createTestAccount error:', err)
-      wx.hideLoading()
-      wx.showToast({ title: '创建失败', icon: 'none' })
-    }
   },
 
   // 继续分配余额
@@ -414,9 +369,17 @@ Page({
       // 计算需要分配的金额（增量）
       const allocateCents = Math.round((targetAmount - currentAmount) * 100)
 
-      // 检查管理员余额
-      const currentBalance = userInfo.balance || 0
-      if (currentBalance < allocateCents) {
+      // 获取企业余额进行检查
+      let enterpriseBalance = 0
+      if (userInfo.enterprise_id) {
+        const entRes = await db.collection('enterprises').doc(userInfo.enterprise_id).get()
+        if (entRes.data) {
+          enterpriseBalance = entRes.data.balance || 0
+        }
+      }
+
+      // 检查企业余额
+      if (enterpriseBalance < allocateCents) {
         wx.hideLoading()
         wx.showToast({ title: '企业余额不足', icon: 'none' })
         return
@@ -432,10 +395,10 @@ Page({
 
       // 检查分配后是否超出企业余额
       const totalAfterAllocate = otherSubBalance + (targetAmount * 100)
-      if (totalAfterAllocate > currentBalance) {
+      if (totalAfterAllocate > enterpriseBalance) {
         wx.hideLoading()
         wx.showToast({
-          title: `分配后所有子账号余额总和将超过企业余额，当前可分配余额: ¥${((currentBalance - otherSubBalance) / 100).toFixed(2)}`,
+          title: `分配后所有子账号余额总和将超过企业余额，当前可分配余额: ¥${((enterpriseBalance - otherSubBalance) / 100).toFixed(2)}`,
           icon: 'none',
           duration: 3000
         })
@@ -450,8 +413,8 @@ Page({
         }
       })
 
-      // 扣除管理员余额
-      await db.collection('users').doc(userInfo._id).update({
+      // 扣除企业余额
+      await db.collection('enterprises').doc(userInfo.enterprise_id).update({
         data: {
           balance: db.command.inc(-allocateCents),
           update_time: db.serverDate()

@@ -140,33 +140,61 @@ exports.main = async (event, context) => {
           })
 
           // 给用户加余额
-          console.log('准备更新用户余额, user_id:', recharge.user_id)
-          const userRes = await db.collection('users').doc(recharge.user_id).get()
-          console.log('用户查询结果:', JSON.stringify(userRes))
+          console.log('准备更新用户余额, user_id:', recharge.user_id, ', type:', recharge.type)
           
-          // doc().get() 返回的是对象，不是数组
-          if (userRes.data && userRes.data._id) {
-            const user = userRes.data
-            const currentBalance = user.balance || 0
-            const newBalance = currentBalance + totalFee
-
-            console.log('更新余额:', { currentBalance, addAmount: totalFee, newBalance })
-
-            await db.collection('users').doc(recharge.user_id).update({
-              data: {
-                balance: newBalance,
-                update_time: db.serverDate()
+          if (recharge.type === 'enterprise') {
+            // 企业充值：更新 enterprises 表中的 balance
+            const userRes = await db.collection('users').doc(recharge.user_id).get()
+            if (userRes.data && userRes.data.enterprise_id) {
+              const enterpriseRes = await db.collection('enterprises').doc(userRes.data.enterprise_id).get()
+              if (enterpriseRes.data) {
+                const currentBalance = enterpriseRes.data.balance || 0
+                const newBalance = currentBalance + totalFee
+                
+                await db.collection('enterprises').doc(userRes.data.enterprise_id).update({
+                  data: {
+                    balance: newBalance,
+                    update_time: db.serverDate()
+                  }
+                })
+                
+                console.log('企业余额更新成功:', {
+                  enterpriseId: userRes.data.enterprise_id,
+                  oldBalance: currentBalance,
+                  addAmount: totalFee,
+                  newBalance: newBalance
+                })
               }
-            })
-
-            console.log('用户余额更新成功:', {
-              userId: recharge.user_id,
-              oldBalance: currentBalance,
-              addAmount: totalFee,
-              newBalance: newBalance
-            })
+            }
           } else {
-            console.error('未找到用户或用户数据为空, user_id:', recharge.user_id)
+            // 个人充值：更新 users 表中的 balance
+            const userRes = await db.collection('users').doc(recharge.user_id).get()
+            console.log('用户查询结果:', JSON.stringify(userRes))
+            
+            // doc().get() 返回的是对象，不是数组
+            if (userRes.data && userRes.data._id) {
+              const user = userRes.data
+              const currentBalance = user.balance || 0
+              const newBalance = currentBalance + totalFee
+
+              console.log('更新余额:', { currentBalance, addAmount: totalFee, newBalance })
+
+              await db.collection('users').doc(recharge.user_id).update({
+                data: {
+                  balance: newBalance,
+                  update_time: db.serverDate()
+                }
+              })
+
+              console.log('用户余额更新成功:', {
+                userId: recharge.user_id,
+                oldBalance: currentBalance,
+                addAmount: totalFee,
+                newBalance: newBalance
+              })
+            } else {
+              console.error('未找到用户或用户数据为空, user_id:', recharge.user_id)
+            }
           }
 
           console.log('充值处理完成')

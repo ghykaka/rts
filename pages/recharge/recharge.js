@@ -3,17 +3,28 @@ const app = getApp()
 
 Page({
   data: {
-    type: 'personal', // personal / enterprise
+    mode: 'personal', // personal / enterprise (当前模式)
+    type: 'personal', // personal / enterprise (充值类型)
     amounts: [0.01, 1, 10, 50, 100, 200, 500, 1000],
     selectedAmount: 0.01,
-    loading: false
+    loading: false,
+    pageTitle: '个人账户充值', // 页面标题
+    showCompanyName: false, // 是否显示企业名称
+    companyName: '' // 企业名称
   },
 
   onLoad(options) {
-    const { type } = options
-    if (type) {
-      this.setData({ type })
-    }
+    const { mode, type } = options
+    const currentMode = mode || 'personal'
+    const userInfo = wx.getStorageSync('userInfo')
+    
+    this.setData({
+      mode: currentMode,
+      type: type || currentMode,
+      pageTitle: currentMode === 'enterprise' ? '企业账户充值' : '个人账户充值',
+      showCompanyName: currentMode === 'enterprise',
+      companyName: userInfo?.company_name || ''
+    })
   },
 
   selectAmount(e) {
