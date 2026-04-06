@@ -64,7 +64,7 @@ exports.main = async (event, context) => {
       status: 'pending',
       out_trade_no: outTradeNo,
       mch_id: MCH_ID,
-      created_at: db.serverDate()
+      created_at: new Date().toISOString() // 使用 ISO 字符串格式，方便查询
     }
 
     const rechargeRes = await db.collection('recharges').add({

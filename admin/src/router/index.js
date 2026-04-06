@@ -12,14 +12,28 @@ const routes = [
   {
     path: '/',
     component: () => import('../views/layout/index.vue'),
-    redirect: '/user',
+    redirect: '/user/personal',
     meta: { requiresAuth: true },
     children: [
       {
         path: 'user',
-        name: 'User',
-        component: () => import('../views/user/index.vue'),
-        meta: { title: '用户管理', icon: 'User' }
+        name: 'UserManagement',
+        redirect: '/user/personal',
+        meta: { title: '用户管理', icon: 'User' },
+        children: [
+          {
+            path: 'personal',
+            name: 'PersonalUsers',
+            component: () => import('../views/user/personal.vue'),
+            meta: { title: '个人用户', parentTitle: '用户管理' }
+          },
+          {
+            path: 'enterprise',
+            name: 'EnterpriseUsers',
+            component: () => import('../views/user/enterprise.vue'),
+            meta: { title: '企业用户', parentTitle: '用户管理' }
+          }
+        ]
       },
       {
         path: 'recharge',

@@ -14,10 +14,18 @@
         router
         class="menu"
       >
-        <el-menu-item index="/user">
-          <el-icon><User /></el-icon>
-          <template #title>用户管理</template>
-        </el-menu-item>
+        <el-sub-menu index="/user">
+          <template #title>
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </template>
+          <el-menu-item index="/user/personal">
+            <span>个人用户</span>
+          </el-menu-item>
+          <el-menu-item index="/user/enterprise">
+            <span>企业用户</span>
+          </el-menu-item>
+        </el-sub-menu>
         
         <el-menu-item index="/recharge">
           <el-icon><Money /></el-icon>
@@ -83,7 +91,7 @@ export default {
     const isCollapse = ref(false)
     
     const activeMenu = computed(() => route.path)
-    const currentRoute = computed(() => route.meta.title || '')
+    const currentRoute = computed(() => route.meta.title || (route.meta.parentTitle ? route.meta.parentTitle + ' - ' + route.meta.title : ''))
     const username = computed(() => store.state.userInfo.username || '管理员')
     
     const handleCommand = (command) => {

@@ -77,10 +77,14 @@ app.post('/admin/login', async (req, res) => {
 // 获取用户列表
 app.get('/admin/users', verifyAdmin, async (req, res) => {
   try {
-    const { page = 1, pageSize = 20 } = req.query
+    const { page = 1, pageSize = 20, userId, phone, userType, companyName } = req.query
     const result = await callCloudFunction('admingetusers', {
       page: parseInt(page),
-      pageSize: parseInt(pageSize)
+      pageSize: parseInt(pageSize),
+      userId: userId || undefined,
+      phone: phone || undefined,
+      userType: userType || undefined,
+      companyName: companyName || undefined
     })
     res.json(result)
   } catch (err) {

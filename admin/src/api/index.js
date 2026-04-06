@@ -21,9 +21,15 @@ const api = {
     return await res.json()
   },
   
-  // 获取用户列表
-  async getUsers({ page = 1, pageSize = 20 }, token) {
-    const res = await fetch(`${API_BASE_URL}/admin/users?page=${page}&pageSize=${pageSize}`, {
+  // 获取用户列表（支持类型筛选和素材统计）
+  async getUsers({ page = 1, pageSize = 20, userId, phone, userType, companyName }, token) {
+    let url = `${API_BASE_URL}/admin/users?page=${page}&pageSize=${pageSize}`
+    if (userId) url += `&userId=${encodeURIComponent(userId)}`
+    if (phone) url += `&phone=${encodeURIComponent(phone)}`
+    if (userType) url += `&userType=${userType}`
+    if (companyName) url += `&companyName=${encodeURIComponent(companyName)}`
+    
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     return await res.json()
