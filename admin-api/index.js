@@ -1,5 +1,6 @@
 const express = require('express')
 const cloud = require('@cloudbase/node-sdk')
+const path = require('path')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -16,6 +17,11 @@ app.use((req, res, next) => {
 })
 
 app.use(express.json())
+
+// 托管前端静态文件
+app.use(express.static(path.join(__dirname, 'dist')))
+
+// API 路由...
 
 // 初始化云开发 SDK
 let cloudApp = null
@@ -222,14 +228,19 @@ app.delete('/admin/materials/:id', verifyAdmin, async (req, res) => {
   }
 })
 
-// 根路由
+// 根路由 - 返回前端页面
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'RTS Admin API is running', time: new Date().toISOString() })
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 // 健康检查
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
+})
+
+// 前端路由通配符 (Vue Router history 模式)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 // Railway 启动
