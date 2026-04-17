@@ -1,0 +1,29 @@
+<view class="container">
+  <!-- 列表 -->
+  <view class="list" wx:if="{{records.length > 0}}">
+    <view class="item" wx:for="{{records}}" wx:key="id">
+      <view class="item-top">
+        <text class="amount">+{{item.amount}}元</text>
+        <text class="status {{item.status === '成功' ? 'success' : 'pending'}}">{{item.status}}</text>
+      </view>
+      <view class="item-bottom">
+        <text class="type">{{item.type}}</text>
+        <text class="time">{{item.paidAt || item.createdAt}}</text>
+      </view>
+      <view class="trade-no" wx:if="{{item.wechatTradeNo}}">
+        <text class="label">微信单号：</text>
+        <text class="value">{{item.wechatTradeNo}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:elif="{{!loading}}">
+    <text>暂无充值记录</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>

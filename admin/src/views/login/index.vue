@@ -78,16 +78,24 @@ export default {
           username: form.username,
           password: form.password
         })
+        console.log('登录响应:', res)
         
-        if (res.result && res.result.success) {
+        // 处理 HTTP 访问服务返回的响应格式（可能是 res 或 res.result）
+        const result = res.result || res
+        console.log('处理后结果:', result)
+        
+        if (result.success) {
+          console.log('准备调用 store.login')
           store.dispatch('login', {
-            token: res.result.token,
-            user: res.result.user
+            token: result.token,
+            user: result.user
           })
+          console.log('准备跳转')
           ElMessage.success('登录成功')
           router.push('/')
+          console.log('已跳转')
         } else {
-          ElMessage.error(res.result?.error || '登录失败')
+          ElMessage.error(result.error || '登录失败')
         }
       } catch (err) {
         ElMessage.error('登录失败，请检查网络')

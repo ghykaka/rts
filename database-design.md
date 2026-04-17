@@ -256,6 +256,48 @@ templates (模板) ──→ template_pricing (按属性定价)
 
 ---
 
+## 13. 工作流产品表 `workflow_products`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| _id | string | 产品ID |
+| name | string | 产品名称（如：自由创作图片、自由创作视频等）|
+| coze_workflow_id | string | Coze工作流ID |
+| coze_workflow_name | string | 工作流名称（冗余存储便于显示）|
+| input_fields | array | 用户输入字段配置（JSON数组）|
+| flow_steps | object | 使用流程配置 |
+| is_active | boolean | 是否启用 |
+| sort | number | 排序 |
+| created_at | date | 创建时间 |
+| updated_at | date | 更新时间 |
+
+### input_fields 字段结构（数组）
+```json
+[
+  {
+    "field_name": "用户看到的名称",
+    "field_key": "对应工作流参数名",
+    "field_type": "text|textarea|number|image",
+    "is_required": true,
+    "placeholder": "提示文字",
+    "sort": 1
+  }
+]
+```
+
+### flow_steps 字段结构（对象）
+```json
+{
+  "step1_select_style": true,     // 选择模板风格页
+  "step2_materials": false,       // 素材列表页
+  "step2_materials_type": "personal|enterprise|both",
+  "step3_input": true,           // 输入生成页
+  "step4_resize": false          // 尺寸缩放页
+}
+```
+
+---
+
 ## 下一步
 
 1. **确认表结构** - 有需要调整的吗？

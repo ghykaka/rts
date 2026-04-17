@@ -1,0 +1,5 @@
+{
+  "name": "adminUploadImage",
+  "version": "1.0.0",
+  "description": "后台图片上传云函数"
+}

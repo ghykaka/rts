@@ -52,6 +52,62 @@ const routes = [
         name: 'CozeWorkflows',
         component: () => import('../views/coze/index.vue'),
         meta: { title: 'Coze工作流', icon: 'Connection' }
+      },
+      {
+        path: 'workflow-products',
+        name: 'WorkflowProducts',
+        component: () => import('../views/workflow-products/index.vue'),
+        meta: { title: '工作流产品', icon: 'Goods' }
+      },
+      {
+        path: 'workflow-functions',
+        name: 'WorkflowFunctions',
+        component: () => import('../views/workflow-functions/index.vue'),
+        meta: { title: '功能管理', icon: 'Connection' }
+      },
+      {
+        path: 'template',
+        name: 'Template',
+        component: () => import('../views/template/index.vue'),
+        meta: { title: '模板管理', icon: 'Document' }
+      },
+      {
+        path: 'platform',
+        name: 'PlatformConfig',
+        redirect: '/platform/generate-sizes',
+        meta: { title: '平台配置', icon: 'Tools' },
+        children: [
+          {
+            path: 'generate-sizes',
+            name: 'GenerateSizes',
+            component: () => import('../views/generate-sizes/index.vue'),
+            meta: { title: '生成物尺寸', parentTitle: '平台配置' }
+          },
+          {
+            path: 'industry',
+            name: 'Industry',
+            component: () => import('../views/industry/index.vue'),
+            meta: { title: '行业管理', parentTitle: '平台配置' }
+          },
+          {
+            path: 'category',
+            name: 'Category',
+            component: () => import('../views/category/index.vue'),
+            meta: { title: '模板分类', parentTitle: '平台配置' }
+          },
+          {
+            path: 'home-config',
+            name: 'HomeConfig',
+            component: () => import('../views/homeConfig/index.vue'),
+            meta: { title: '首页配置', parentTitle: '平台配置' }
+          },
+          {
+            path: 'article',
+            name: 'Article',
+            component: () => import('../views/article/index.vue'),
+            meta: { title: '文章管理', parentTitle: '平台配置' }
+          }
+        ]
       }
     ]
   },
