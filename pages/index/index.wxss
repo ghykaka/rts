@@ -188,13 +188,12 @@
 }
 
 .waterfall-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  column-count: 2;
+  column-gap: 16rpx;
 }
 
 .waterfall-item {
-  width: calc(50% - 8rpx);
+  break-inside: avoid;
   background-color: #fff;
   border-radius: 12rpx;
   overflow: hidden;
