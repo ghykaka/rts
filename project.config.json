@@ -20,7 +20,11 @@
       },
       {
         "type": "folder",
-        "value": "cloudfunctions/node_modules"
+        "value": "cloudfunctions"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
       },
       {
         "type": "file",
@@ -37,6 +41,18 @@
       {
         "type": "file",
         "value": "deploy*.log"
+      },
+      {
+        "type": "file",
+        "value": "*.md"
+      },
+      {
+        "type": "file",
+        "value": "Dockerfile"
+      },
+      {
+        "type": "file",
+        "value": "Railway.json"
       }
     ],
     "include": []
