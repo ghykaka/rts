@@ -29,15 +29,14 @@
 
   <!-- 功能列表 -->
   <view class="menu-section">
-    <!-- 企业入口（企业用户可见） -->
-    <view class="menu-card" wx:if="{{isLogin && currentMode === 'enterprise'}}">
+    <!-- 企业入口（只有管理员可见） -->
+    <view class="menu-card" wx:if="{{isLogin && currentMode === 'enterprise' && isEnterpriseAdmin}}">
       <view class="menu-item" bindtap="goEnterpriseMaterials">
         <image class="menu-icon" src="/assets/icons/user1.png" />
         <text class="menu-text">企业素材库</text>
         <text class="arrow">></text>
       </view>
-      <!-- 只有管理员才能看到管理子账号入口 -->
-      <view class="menu-item" bindtap="goManageSubAccounts" wx:if="{{isEnterpriseAdmin}}">
+      <view class="menu-item" bindtap="goManageSubAccounts">
         <image class="menu-icon" src="/assets/icons/team.png" />
         <text class="menu-text">管理子账号</text>
         <text class="arrow">></text>
