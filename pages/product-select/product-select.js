@@ -196,6 +196,7 @@ Page({
       currentPrimaryCategory: '',
       currentPrimaryId: '',
       currentSecondaryCategory: '',
+      subCategoryMap: {},
       products: [],
       column0: [],
       column1: [],
@@ -417,6 +418,8 @@ Page({
       }
 
       console.log('loadProducts - whereCondition:', JSON.stringify(whereCondition))
+      console.log('loadProducts - currentPrimaryCategory:', this.data.currentPrimaryCategory)
+      console.log('loadProducts - currentPrimaryId:', this.data.currentPrimaryId)
 
       // 如果选择了二级分类，按二级分类筛选
       if (this.data.currentSecondaryCategory) {
