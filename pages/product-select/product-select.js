@@ -450,7 +450,9 @@ Page({
         .limit(this.data.pageSize)
         .get()
 
+      console.log('DB raw result:', JSON.stringify(res).substring(0, 500))
       let newProducts = res.data || []
+      console.log('Parsed newProducts:', newProducts.length)
       console.log('loadProducts result:', { 
         newCount: newProducts.length,
         totalProducts: this.data.products.length + newProducts.length,
