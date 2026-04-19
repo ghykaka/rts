@@ -427,6 +427,19 @@ Page({
         whereCondition.category2_id = db.command.in(subIds)
       }
 
+      console.log('loadProducts query:', { 
+        page: this.data.page, 
+        skip: (this.data.page - 1) * this.data.pageSize,
+        pageSize: this.data.pageSize,
+        materialLibType: this.data.materialLibType
+      })
+      
+      // 先查询总数
+      const countRes = await db.collection('materials')
+        .where(whereCondition)
+        .count()
+      console.log('Total count:', countRes.total)
+      
       const res = await db.collection('materials')
         .where(whereCondition)
         .orderBy('create_time', 'desc')
@@ -435,6 +448,11 @@ Page({
         .get()
 
       let newProducts = res.data || []
+      console.log('loadProducts result:', { 
+        newCount: newProducts.length,
+        totalProducts: this.data.products.length + newProducts.length,
+        hasMore: newProducts.length >= this.data.pageSize
+      })
 
       // 获取云存储临时URL（同时获取原图和缩略图）
       if (newProducts.length > 0) {
@@ -504,6 +522,7 @@ Page({
         hasMore: newProducts.length >= this.data.pageSize,
         loading: false
       })
+      console.log('hasMore set to:', newProducts.length >= this.data.pageSize)
     } catch (err) {
       console.error('loadProducts error:', err)
       this.setData({ loading: false })
@@ -516,7 +535,14 @@ Page({
 
   // 加载更多
   loadMore() {
+    console.log('loadMore called:', { 
+      hasMore: this.data.hasMore, 
+      loading: this.data.loading,
+      page: this.data.page,
+      productCount: this.data.products.length
+    })
     if (this.data.hasMore && !this.data.loading) {
+      console.log('loading next page:', this.data.page + 1)
       this.setData({ page: this.data.page + 1 })
       this.loadProducts()
     }
@@ -524,6 +550,7 @@ Page({
 
   // 触底加载
   onReachBottom() {
+    console.log('onReachBottom triggered')
     this.loadMore()
   },
 
