@@ -421,10 +421,13 @@ Page({
       // 如果选择了二级分类，按二级分类筛选
       if (this.data.currentSecondaryCategory) {
         whereCondition.category2_id = this.data.currentSecondaryCategory
-      } else if (this.data.currentPrimaryId && this.data.subCategoryMap[this.data.currentPrimaryId]) {
+      } else if (this.data.currentPrimaryId && this.data.currentPrimaryId !== '') {
         // 如果选择了一级分类，按该分类下的所有二级分类筛选
-        const subIds = this.data.subCategoryMap[this.data.currentPrimaryId].map(c => c._id)
-        whereCondition.category2_id = db.command.in(subIds)
+        const subCategoryList = this.data.subCategoryMap[this.data.currentPrimaryId] || []
+        if (subCategoryList.length > 0) {
+          const subIds = subCategoryList.map(c => c._id)
+          whereCondition.category2_id = db.command.in(subIds)
+        }
       }
 
       console.log('loadProducts query:', { 
