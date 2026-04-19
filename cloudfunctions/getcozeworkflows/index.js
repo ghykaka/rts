@@ -9,12 +9,17 @@ const ACCESS_TOKEN = 'pat_Roqj7UcU5clYdyjZ1XXGxu7mIsabPDNnVx8jckw7QtEbfak6Y8tVWa
 const WORKSPACE_ID = '7611606798268891178'
 
 exports.main = async (event, context) => {
-  const { pageNum = 1, pageSize = 30, workflowMode } = event
+  const { pageNum = 1, pageSize = 30, workflowMode, workflowId, getDetails } = event
 
   console.log('=== 获取 Coze 工作流列表 ===')
-  console.log('参数:', { pageNum, pageSize, workflowMode })
+  console.log('参数:', { pageNum, pageSize, workflowMode, workflowId, getDetails })
 
   try {
+    // 如果指定了 workflowId 且需要获取详情，调用详情接口
+    if (workflowId && getDetails) {
+      return await getWorkflowDetails(workflowId)
+    }
+
     // 构建请求参数
     const params = {
       workspace_id: WORKSPACE_ID,
@@ -92,6 +97,121 @@ exports.main = async (event, context) => {
       error: '获取工作流列表失败: ' + err.message
     }
   }
+}
+
+// 获取单个工作流的详细信息（输入/输出参数）
+async function getWorkflowDetails(workflowId) {
+  console.log('获取工作流详情:', workflowId)
+  
+  try {
+    const response = await axios.get(`${COZE_API_BASE}/v1/workflows/${workflowId}`, {
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      params: {
+        workflow_id: workflowId
+      }
+    })
+
+    const result = response.data
+    console.log('工作流详情响应 code:', result.code)
+
+    if (result.code !== 0) {
+      return {
+        success: false,
+        error: result.msg || '获取工作流详情失败'
+      }
+    }
+
+    // Coze API 返回的数据在 data.workflow_detail 中
+    const workflowDetail = result.data?.workflow_detail || result.data || {}
+    console.log('工作流名:', workflowDetail.workflow_name)
+    console.log('原始数据 keys:', Object.keys(workflowDetail))
+
+    // 尝试获取输入输出参数 - 可能在不同位置
+    let inputParamsData = workflowDetail.input_params || workflowDetail.input_definition || {}
+    let outputParamsData = workflowDetail.output_params || workflowDetail.output_definition || {}
+
+    // 如果是嵌套在 workflow_detail 里的情况
+    if (!inputParamsData.properties && workflowDetail.properties) {
+      inputParamsData = workflowDetail.properties?.input || {}
+      outputParamsData = workflowDetail.properties?.output || {}
+    }
+
+    console.log('输入参数原始:', JSON.stringify(inputParamsData))
+    console.log('输出参数原始:', JSON.stringify(outputParamsData))
+
+    // 整理输入参数
+    const inputParams = []
+    const inputProps = inputParamsData.properties || inputParamsData
+    if (inputProps && typeof inputProps === 'object') {
+      const required = inputParamsData.required || []
+      
+      for (const [key, config] of Object.entries(inputProps)) {
+        if (typeof config === 'object') {
+          inputParams.push({
+            field_key: key,
+            field_name: config.description || config.name || key,
+            field_type: getFieldType(config.type),
+            max_length: config.max_length || config.properties ? undefined : 200,
+            is_required: required.includes(key)
+          })
+        }
+      }
+    }
+
+    // 整理输出参数
+    const outputParams = []
+    const outputProps = outputParamsData.properties || outputParamsData
+    if (outputProps && typeof outputProps === 'object') {
+      for (const [key, config] of Object.entries(outputProps)) {
+        if (typeof config === 'object') {
+          outputParams.push({
+            field_key: key,
+            field_name: config.description || config.name || key,
+            field_type: getFieldType(config.type),
+            downloadable: true,
+            copyable: false
+          })
+        }
+      }
+    }
+
+    console.log('整理后输入参数:', inputParams.length, '个')
+    console.log('整理后输出参数:', outputParams.length, '个')
+
+    return {
+      success: true,
+      data: {
+        workflow_id: workflowId,
+        workflow_name: workflowDetail.workflow_name,
+        description: workflowDetail.description || '',
+        input_params: inputParams,
+        output_params: outputParams
+      }
+    }
+
+  } catch (err) {
+    console.error('获取工作流详情失败:', err.message)
+    return {
+      success: false,
+      error: '获取工作流详情失败: ' + err.message
+    }
+  }
+}
+
+// 根据 JSON Schema 类型映射为前端类型
+function getFieldType(type) {
+  const typeMap = {
+    'string': 'text',
+    'integer': 'number',
+    'number': 'number',
+    'boolean': 'text',
+    'array': 'text',
+    'object': 'text'
+  }
+  return typeMap[type] || 'text'
 }
 
 // 获取发布状态名称

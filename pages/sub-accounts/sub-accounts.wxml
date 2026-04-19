@@ -24,10 +24,13 @@
       <view class="account-info">
         <image class="avatar" src="{{item.avatar || '/assets/icons/default-avatar.png'}}" mode="aspectFill" />
         <view class="info">
-          <text class="name">{{item.nickname || '未命名'}}</text>
+          <view class="name-row">
+            <text class="name">{{item.remark || item.nickname || item.phone}}</text>
+            <text class="status-tag {{item.status === 'active' ? 'active' : 'pending'}}">{{item.status === 'active' ? '已激活' : '待激活'}}</text>
+          </view>
           <text class="remark-row">
             <text class="remark" wx:if="{{item.remark}}">{{item.remark}}</text>
-            <text wx:if="{{item.remark}}" class="remark-link" bindtap="showEditRemark" data-user-id="{{item._id}}" data-remark="{{item.remark}}">修改备注</text>
+            <text wx:if="{{item.remark}}" class="remark-link" bindtap="showEditRemark" data-user-id="{{item._id}}" data-remark="{{item.remark}}">修改</text>
             <text wx:else class="remark-link" bindtap="showEditRemark" data-user-id="{{item._id}}" data-remark="{{item.remark}}">添加备注</text>
           </text>
           <text class="phone">{{item.phone}}</text>
@@ -36,15 +39,26 @@
       <view class="balance-section">
         <text class="balance-label">账户余额</text>
         <text class="balance-amount">¥{{item.displayBalance}}</text>
-        <button
-          class="allocate-btn"
-          size="mini"
-          bindtap="continueAllocateBalance"
-          data-user-id="{{item._id}}"
-          data-balance="{{item.balance}}"
-        >
-          分配
-        </button>
+        <view class="action-btns">
+          <button
+            class="allocate-btn"
+            size="mini"
+            bindtap="continueAllocateBalance"
+            data-user-id="{{item._id}}"
+            data-balance="{{item.balance}}"
+          >
+            分配
+          </button>
+          <button
+            class="delete-btn"
+            size="mini"
+            bindtap="deleteSubAccount"
+            data-user-id="{{item._id}}"
+            data-phone="{{item.phone}}"
+          >
+            删除
+          </button>
+        </view>
       </view>
     </view>
   </view>
@@ -90,11 +104,11 @@
         <view class="form-label">分配余额(元)</view>
         <input
           class="form-input"
-          placeholder="请输入分配金额"
+          placeholder="请输入分配金额，可为0"
           value="{{displayBalance}}"
           bindinput="onBalanceInput"
           bindtap="stopPropagation"
-          type="number"
+          type="digit"
         />
       </view>
     </view>

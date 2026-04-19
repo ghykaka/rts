@@ -3,43 +3,88 @@
   <!-- Step标题 -->
   <view class="step-title">Step1，选择风格模板</view>
 
-  <!-- 顶部分类标签栏 -->
-  <view class="category-tabs">
-    <view
-      class="tab-item {{currentCategory === '' ? 'active' : ''}}"
-      bindtap="selectCategory"
-      data-name=""
-    >
-      全部
-    </view>
-    <view
-      class="tab-item {{currentCategory === '广告风格' ? 'active' : ''}}"
-      bindtap="selectCategory"
-      data-name="广告风格"
-    >
-      广告风格
-    </view>
-    <view
-      class="tab-item {{currentCategory === '实景风格' ? 'active' : ''}}"
-      bindtap="selectCategory"
-      data-name="实景风格"
-    >
-      实景风格
-    </view>
-    <view
-      class="tab-item {{currentCategory === '人物风格' ? 'active' : ''}}"
-      bindtap="selectCategory"
-      data-name="人物风格"
-    >
-      人物风格
-    </view>
-    <view
-      class="tab-item {{currentCategory === '动漫风格' ? 'active' : ''}}"
-      bindtap="selectCategory"
-      data-name="动漫风格"
-    >
-      动漫风格
-    </view>
+  <!-- 行业筛选行 -->
+  <view class="filter-section">
+    <scroll-view class="filter-scroll-full" scroll-x>
+      <view class="filter-tags">
+        <!-- 全部 -->
+        <view
+          class="filter-tag {{currentIndustry === '' ? 'active' : ''}}"
+          bindtap="selectIndustry"
+          data-industry=""
+        >
+          全部
+        </view>
+        <!-- 企业行业（已登录企业用户） -->
+        <view
+          class="filter-tag {{currentIndustry === item ? 'active' : ''}}"
+          bindtap="selectIndustry"
+          data-industry="{{item}}"
+          wx:for="{{userIndustries}}"
+          wx:key="*this"
+        >
+          {{item}}
+        </view>
+        <!-- 其他行业（排除企业行业） -->
+        <view
+          class="filter-tag {{currentIndustry === item.name ? 'active' : ''}}"
+          bindtap="selectIndustry"
+          data-industry="{{item.name}}"
+          wx:for="{{otherIndustries}}"
+          wx:key="_id"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 分类筛选行 - 一级分类 -->
+  <view class="filter-section category-section" wx:if="{{categories.length > 0}}">
+    <scroll-view class="filter-scroll-full" scroll-x>
+      <view class="filter-tags">
+        <view
+          class="filter-tag {{currentCategory1 === '' ? 'active' : ''}}"
+          bindtap="selectCategory1"
+          data-id=""
+        >
+          全部
+        </view>
+        <view
+          class="filter-tag {{currentCategory1 === item._id ? 'active' : ''}}"
+          bindtap="selectCategory1"
+          data-id="{{item._id}}"
+          wx:for="{{categories}}"
+          wx:key="_id"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 二级分类筛选行（独立一行，点击一级分类后显示） -->
+  <view class="filter-section sub-category-section" wx:if="{{currentCategory1 && subCategories.length > 0}}">
+    <scroll-view class="filter-scroll-full" scroll-x>
+      <view class="filter-tags">
+        <view
+          class="filter-tag small {{currentCategory2 === '' ? 'active' : ''}}"
+          bindtap="selectCategory2"
+          data-id=""
+        >
+          全部
+        </view>
+        <view
+          class="filter-tag small {{currentCategory2 === item._id ? 'active' : ''}}"
+          bindtap="selectCategory2"
+          data-id="{{item._id}}"
+          wx:for="{{subCategories}}"
+          wx:key="_id"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 模板瀑布流 - 3列 -->
@@ -52,18 +97,27 @@
         wx:key="_id"
         bindtap="selectTemplate"
         data-id="{{item._id}}"
-        data-name="{{item.name}}"
-        data-cover="{{item.cover_url}}"
-        data-description="{{item.description}}"
+        data-name="{{item.templateName}}"
+        data-cover="{{item.thumbnail}}"
+        data-description="{{item.templateDesc}}"
+        data-needmaterial="{{item.needMaterial}}"
+        data-functionid="{{item.functionId}}"
       >
         <image
           class="template-image"
-          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          src="{{item.thumbnail || '/assets/icons/default-cover.png'}}"
           mode="widthFix"
+          lazy-load
+          data-column="0"
+          data-index="{{index}}"
+          bindload="onImageLoad"
         />
         <view class="template-info">
-          <text class="template-title">{{item.name}}</text>
-          <text class="template-category">{{item.category_name}}</text>
+          <text class="template-title">{{item.templateName}}</text>
+          <view class="template-tags">
+            <text class="template-category" wx:if="{{item.category1Name || item.industry}}">{{item.category1Name || item.industry}}</text>
+            <text class="template-function" wx:if="{{item.functionName}}">{{item.functionName}}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -75,18 +129,27 @@
         wx:key="_id"
         bindtap="selectTemplate"
         data-id="{{item._id}}"
-        data-name="{{item.name}}"
-        data-cover="{{item.cover_url}}"
-        data-description="{{item.description}}"
+        data-name="{{item.templateName}}"
+        data-cover="{{item.thumbnail}}"
+        data-description="{{item.templateDesc}}"
+        data-needmaterial="{{item.needMaterial}}"
+        data-functionid="{{item.functionId}}"
       >
         <image
           class="template-image"
-          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          src="{{item.thumbnail || '/assets/icons/default-cover.png'}}"
           mode="widthFix"
+          lazy-load
+          data-column="1"
+          data-index="{{index}}"
+          bindload="onImageLoad"
         />
         <view class="template-info">
-          <text class="template-title">{{item.name}}</text>
-          <text class="template-category">{{item.category_name}}</text>
+          <text class="template-title">{{item.templateName}}</text>
+          <view class="template-tags">
+            <text class="template-category" wx:if="{{item.category1Name || item.industry}}">{{item.category1Name || item.industry}}</text>
+            <text class="template-function" wx:if="{{item.functionName}}">{{item.functionName}}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -98,18 +161,27 @@
         wx:key="_id"
         bindtap="selectTemplate"
         data-id="{{item._id}}"
-        data-name="{{item.name}}"
-        data-cover="{{item.cover_url}}"
-        data-description="{{item.description}}"
+        data-name="{{item.templateName}}"
+        data-cover="{{item.thumbnail}}"
+        data-description="{{item.templateDesc}}"
+        data-needmaterial="{{item.needMaterial}}"
+        data-functionid="{{item.functionId}}"
       >
         <image
           class="template-image"
-          src="{{item.cover_url || '/assets/icons/default-cover.png'}}"
+          src="{{item.thumbnail || '/assets/icons/default-cover.png'}}"
           mode="widthFix"
+          lazy-load
+          data-column="2"
+          data-index="{{index}}"
+          bindload="onImageLoad"
         />
         <view class="template-info">
-          <text class="template-title">{{item.name}}</text>
-          <text class="template-category">{{item.category_name}}</text>
+          <text class="template-title">{{item.templateName}}</text>
+          <view class="template-tags">
+            <text class="template-category" wx:if="{{item.category1Name || item.industry}}">{{item.category1Name || item.industry}}</text>
+            <text class="template-function" wx:if="{{item.functionName}}">{{item.functionName}}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -127,7 +199,7 @@
   </view>
 
   <!-- 加载更多 -->
-  <view wx:if="{{hasMore && !loading}}" class="load-more" bindtap="loadMore">
+  <view wx:if="{{hasMore && !loading && templates.length > 0}}" class="load-more" bindtap="onReachBottom">
     <text>加载更多</text>
   </view>
 </view>

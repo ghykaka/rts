@@ -139,8 +139,12 @@ exports.main = async (event, context) => {
             }
           })
 
+          // 计算赠送金额（bonus 单位是元，totalFee 单位是分）
+          const bonus = recharge.bonus || 0
+          const totalAdd = totalFee + Math.round(bonus * 100) // 加上赠送金额
+
           // 给用户加余额
-          console.log('准备更新用户余额, user_id:', recharge.user_id, ', type:', recharge.type)
+          console.log('准备更新用户余额, user_id:', recharge.user_id, ', type:', recharge.type, ', 充值:', totalFee, ', 赠送:', bonus, ', 总计:', totalAdd)
           
           if (recharge.type === 'enterprise') {
             // 企业充值：更新 enterprises 表中的 balance
@@ -149,7 +153,7 @@ exports.main = async (event, context) => {
               const enterpriseRes = await db.collection('enterprises').doc(userRes.data.enterprise_id).get()
               if (enterpriseRes.data) {
                 const currentBalance = enterpriseRes.data.balance || 0
-                const newBalance = currentBalance + totalFee
+                const newBalance = currentBalance + totalAdd
                 
                 await db.collection('enterprises').doc(userRes.data.enterprise_id).update({
                   data: {
@@ -162,6 +166,8 @@ exports.main = async (event, context) => {
                   enterpriseId: userRes.data.enterprise_id,
                   oldBalance: currentBalance,
                   addAmount: totalFee,
+                  bonus: bonus,
+                  totalAdd: totalAdd,
                   newBalance: newBalance
                 })
               }
@@ -175,9 +181,9 @@ exports.main = async (event, context) => {
             if (userRes.data && userRes.data._id) {
               const user = userRes.data
               const currentBalance = user.balance || 0
-              const newBalance = currentBalance + totalFee
+              const newBalance = currentBalance + totalAdd
 
-              console.log('更新余额:', { currentBalance, addAmount: totalFee, newBalance })
+              console.log('更新余额:', { currentBalance, addAmount: totalFee, bonus: bonus, totalAdd: totalAdd, newBalance })
 
               await db.collection('users').doc(recharge.user_id).update({
                 data: {
@@ -190,6 +196,8 @@ exports.main = async (event, context) => {
                 userId: recharge.user_id,
                 oldBalance: currentBalance,
                 addAmount: totalFee,
+                bonus: bonus,
+                totalAdd: totalAdd,
                 newBalance: newBalance
               })
             } else {

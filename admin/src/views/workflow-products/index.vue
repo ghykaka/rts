@@ -104,19 +104,52 @@
               :value="wf.workflow_id"
             />
           </el-select>
+          <el-button v-if="form.cozeWorkflowId" type="primary" link @click="syncWorkflowParams" :loading="syncingParams" style="margin-left: 10px">
+            {{ syncingParams ? '同步中...' : '同步参数' }}
+          </el-button>
         </el-form-item>
         
-        <el-form-item label="输入字段配置">
+        <el-form-item label="固定字段映射">
           <div class="input-fields-config">
+            <div class="field-tip">配置从模板/素材/尺寸表读取的字段，映射到COZE工作流输入参数</div>
+            <div v-for="(field, index) in form.fixedFieldMappings" :key="index" class="field-item">
+              <el-select v-model="field.sourceTable" placeholder="来源表" style="width: 130px" @change="onSourceTableChange(field)">
+                <el-option label="模板表" value="templates" />
+                <el-option label="素材表" value="materials" />
+                <el-option label="尺寸表" value="generate_sizes" />
+              </el-select>
+              <el-select v-model="field.sourceField" placeholder="源字段" style="width: 130px">
+                <el-option
+                  v-for="f in getSourceFieldOptions(field.sourceTable)"
+                  :key="f.key"
+                  :label="f.label"
+                  :value="f.key"
+                />
+              </el-select>
+              <el-input v-model="field.targetField" placeholder="COZE字段名" style="width: 120px" />
+              <el-button type="danger" link @click="removeFixedField(index)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+            <el-button type="primary" link @click="addFixedField">
+              <el-icon><Plus /></el-icon> 添加映射
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="用户输入字段">
+          <div class="input-fields-config">
+            <div class="field-tip">配置用户在小程序中输入的字段（如文案、图片等）</div>
             <div v-for="(field, index) in form.inputFields" :key="index" class="field-item">
-              <el-input v-model="field.fieldName" placeholder="显示名称" style="width: 120px" />
-              <el-input v-model="field.fieldKey" placeholder="参数名" style="width: 120px" />
+              <el-input v-model="field.fieldName" placeholder="显示名称" style="width: 140px" />
+              <el-input v-model="field.fieldKey" placeholder="参数名" style="width: 100px" />
               <el-select v-model="field.fieldType" placeholder="类型" style="width: 100px">
                 <el-option label="单行文本" value="text" />
                 <el-option label="多行文本" value="textarea" />
                 <el-option label="数字" value="number" />
                 <el-option label="图片" value="image" />
               </el-select>
+              <el-input-number v-model="field.maxLength" :min="1" :max="500" placeholder="最大长度" style="width: 90px" />
               <el-checkbox v-model="field.isRequired">必填</el-checkbox>
               <el-button type="danger" link @click="removeField(index)">
                 <el-icon><Delete /></el-icon>
@@ -124,6 +157,30 @@
             </div>
             <el-button type="primary" link @click="addField">
               <el-icon><Plus /></el-icon> 添加字段
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="输出字段配置">
+          <div class="input-fields-config">
+            <div class="field-tip">配置工作流输出的字段，用于前端展示生成结果</div>
+            <div v-for="(field, index) in form.outputFields" :key="index" class="field-item">
+              <el-input v-model="field.fieldName" placeholder="显示名称" style="width: 140px" />
+              <el-input v-model="field.fieldKey" placeholder="输出变量名" style="width: 120px" />
+              <el-select v-model="field.fieldType" placeholder="类型" style="width: 100px">
+                <el-option label="图片" value="image" />
+                <el-option label="视频" value="video" />
+                <el-option label="文本" value="text" />
+                <el-option label="链接" value="url" />
+              </el-select>
+              <el-checkbox v-model="field.downloadable" style="width: 70px">可下载</el-checkbox>
+              <el-checkbox v-model="field.copyable" style="width: 70px">可复制</el-checkbox>
+              <el-button type="danger" link @click="removeOutputField(index)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+            <el-button type="primary" link @click="addOutputField">
+              <el-icon><Plus /></el-icon> 添加输出字段
             </el-button>
           </div>
         </el-form-item>
@@ -176,6 +233,7 @@ export default {
     const formRef = ref(null)
     const workflowList = ref([])
     const currentEditId = ref(null)
+    const syncingParams = ref(false)
 
     const searchForm = reactive({
       name: '',
@@ -192,7 +250,9 @@ export default {
       name: '',
       cozeWorkflowId: '',
       cozeWorkflowName: '',
+      fixedFieldMappings: [],  // 固定字段映射配置
       inputFields: [],
+      outputFields: [],
       flowSteps: {
         step1_select_style: false,
         step2_materials: false,
@@ -202,6 +262,48 @@ export default {
       },
       isActive: true
     })
+
+    // 来源表字段选项
+    const sourceFieldOptions = {
+      templates: [
+        { key: 'prompt', label: 'prompt (提示词)' },
+        { key: 'name', label: 'name (名称)' },
+        { key: 'cover', label: 'cover (封面图)' },
+        { key: 'description', label: 'description (描述)' }
+      ],
+      materials: [
+        { key: 'title', label: 'title (标题)' },
+        { key: 'url', label: 'url (图片地址)' },
+        { key: 'description', label: 'description (描述)' }
+      ],
+      generate_sizes: [
+        { key: 'name', label: 'name (名称)' },
+        { key: 'size_value', label: 'size_value (尺寸值)' },
+        { key: 'width', label: 'width (宽度)' },
+        { key: 'height', label: 'height (高度)' },
+        { key: 'category', label: 'category (分类)' }
+      ]
+    }
+
+    const getSourceFieldOptions = (table) => {
+      return sourceFieldOptions[table] || []
+    }
+
+    const onSourceTableChange = (field) => {
+      field.sourceField = ''  // 清空字段选择
+    }
+
+    const addFixedField = () => {
+      form.fixedFieldMappings.push({
+        sourceTable: 'templates',
+        sourceField: 'prompt',
+        targetField: ''
+      })
+    }
+
+    const removeFixedField = (index) => {
+      form.fixedFieldMappings.splice(index, 1)
+    }
 
     const rules = {
       name: [{ required: true, message: '请输入产品名称', trigger: 'blur' }],
@@ -274,11 +376,26 @@ export default {
         form.name = row.name
         form.cozeWorkflowId = row.coze_workflow_id
         form.cozeWorkflowName = row.coze_workflow_name
+        // 读取固定字段映射配置
+        form.fixedFieldMappings = (row.fixed_field_mappings || []).map((f) => ({
+          sourceTable: f.source_table || f.sourceTable || 'templates',
+          sourceField: f.source_field || f.sourceField || '',
+          targetField: f.target_field || f.targetField || ''
+        }))
         form.inputFields = (row.input_fields || []).map((f, i) => ({
           fieldName: f.field_name || f.fieldName || '',
           fieldKey: f.field_key || f.fieldKey || '',
           fieldType: f.field_type || f.fieldType || 'text',
+          maxLength: f.max_length || f.maxLength || 200,
           isRequired: f.is_required ?? f.isRequired ?? false
+        }))
+        // 读取输出字段配置
+        form.outputFields = (row.output_fields || []).map((f) => ({
+          fieldName: f.field_name || f.fieldName || '',
+          fieldKey: f.field_key || f.fieldKey || '',
+          fieldType: f.field_type || f.fieldType || 'image',
+          downloadable: f.downloadable ?? true,
+          copyable: f.copyable ?? false
         }))
         form.flowSteps = {
           step1_select_style: row.flow_steps?.step1_select_style || false,
@@ -299,11 +416,83 @@ export default {
       }
     }
 
+    // 同步工作流参数（从 Coze 获取最新的输入/输出参数）
+    const syncWorkflowParams = async () => {
+      if (!form.cozeWorkflowId) {
+        ElMessage.warning('请先选择工作流')
+        return
+      }
+      
+      syncingParams.value = true
+      try {
+        const token = store.state.token
+        const res = await api.getCozeWorkflows({ 
+          workflowId: form.cozeWorkflowId, 
+          getDetails: true 
+        }, token)
+        
+        const result = res.result || res
+        if (result.success && result.data) {
+          const workflowData = result.data
+          
+          // 自动填充输入字段（如果为空或用户确认覆盖）
+          if (workflowData.input_params && workflowData.input_params.length > 0) {
+            if (form.inputFields.length === 0 || await confirmReplace('输入')) {
+              form.inputFields = workflowData.input_params.map((p, i) => ({
+                fieldName: p.field_name || p.field_key,
+                fieldKey: p.field_key,
+                fieldType: p.field_type || 'text',
+                maxLength: p.max_length || 200,
+                isRequired: p.is_required || false
+              }))
+              ElMessage.success(`已同步 ${workflowData.input_params.length} 个输入参数`)
+            }
+          }
+          
+          // 自动填充输出字段（如果为空或用户确认覆盖）
+          if (workflowData.output_params && workflowData.output_params.length > 0) {
+            if (form.outputFields.length === 0 || await confirmReplace('输出')) {
+              form.outputFields = workflowData.output_params.map((p, i) => ({
+                fieldName: p.field_name || p.field_key,
+                fieldKey: p.field_key,
+                fieldType: p.field_type || 'image',
+                downloadable: p.downloadable !== false,
+                copyable: p.copyable || false
+              }))
+              ElMessage.success(`已同步 ${workflowData.output_params.length} 个输出参数`)
+            }
+          }
+          
+          if ((!workflowData.input_params || workflowData.input_params.length === 0) &&
+              (!workflowData.output_params || workflowData.output_params.length === 0)) {
+            ElMessage.info('该工作流没有定义输入/输出参数')
+          }
+        } else {
+          ElMessage.error(result.error || '同步失败')
+        }
+      } catch (err) {
+        console.error('同步工作流参数失败:', err)
+        ElMessage.error('同步工作流参数失败')
+      } finally {
+        syncingParams.value = false
+      }
+    }
+    
+    // 确认是否覆盖现有配置
+    const confirmReplace = async (type) => {
+      return await ElMessageBox.confirm(
+        `已有${type}字段配置，是否覆盖？`,
+        '提示',
+        { type: 'warning' }
+      ).then(() => true).catch(() => false)
+    }
+
     const addField = () => {
       form.inputFields.push({
         fieldName: '',
         fieldKey: '',
         fieldType: 'text',
+        maxLength: 200,
         isRequired: false
       })
     }
@@ -312,11 +501,27 @@ export default {
       form.inputFields.splice(index, 1)
     }
 
+    const addOutputField = () => {
+      form.outputFields.push({
+        fieldName: '',
+        fieldKey: '',
+        fieldType: 'image',
+        downloadable: true,
+        copyable: false
+      })
+    }
+
+    const removeOutputField = (index) => {
+      form.outputFields.splice(index, 1)
+    }
+
     const resetForm = () => {
       form.name = ''
       form.cozeWorkflowId = ''
       form.cozeWorkflowName = ''
+      form.fixedFieldMappings = []
       form.inputFields = []
+      form.outputFields = []
       form.flowSteps = {
         step1_select_style: false,
         step2_materials: false,
@@ -340,11 +545,25 @@ export default {
           name: form.name,
           cozeWorkflowId: form.cozeWorkflowId,
           cozeWorkflowName: form.cozeWorkflowName,
+          fixedFieldMappings: form.fixedFieldMappings.map((f) => ({
+            source_table: f.sourceTable,
+            source_field: f.sourceField,
+            target_field: f.targetField
+          })),
           inputFields: form.inputFields.map((f, i) => ({
             field_name: f.fieldName,
             field_key: f.fieldKey,
             field_type: f.fieldType,
+            max_length: f.maxLength || 200,
             is_required: f.isRequired,
+            sort: i + 1
+          })),
+          outputFields: form.outputFields.map((f, i) => ({
+            field_name: f.fieldName,
+            field_key: f.fieldKey,
+            field_type: f.fieldType,
+            downloadable: f.downloadable ?? true,
+            copyable: f.copyable ?? false,
             sort: i + 1
           })),
           flowSteps: form.flowSteps,
@@ -432,8 +651,15 @@ export default {
       handleAdd,
       handleEdit,
       handleWorkflowChange,
+      syncWorkflowParams,
+      syncingParams,
+      getSourceFieldOptions,
+      addFixedField,
+      removeFixedField,
       addField,
       removeField,
+      addOutputField,
+      removeOutputField,
       handleSubmit,
       handleDelete,
       formatDate
@@ -483,6 +709,12 @@ export default {
 
 .input-fields-config {
   width: 100%;
+}
+
+.field-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 10px;
 }
 
 .field-item {

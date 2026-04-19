@@ -47,6 +47,18 @@
             <span>{{ row.name }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="尺寸示意图" width="80" align="center">
+          <template #default="{ row }">
+            <el-image 
+              v-if="row.example_image" 
+              :src="row.example_image" 
+              style="width: 40px; height: 40px; border-radius: 4px;"
+              fit="cover"
+              :preview-src-list="[row.example_image]"
+            />
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="描述" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.description || '-' }}
@@ -55,6 +67,11 @@
         <el-table-column label="尺寸值" width="140">
           <template #default="{ row }">
             <span style="font-family: monospace">{{ row.size_value }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="排序" width="80" align="center">
+          <template #default="{ row }">
+            {{ row.sort ?? 0 }}
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80" align="center">
@@ -113,6 +130,33 @@
           <el-input v-model="form.sizeValue" placeholder="如：900x1600、1000x1000" />
         </el-form-item>
 
+        <el-form-item label="尺寸示意图">
+          <div class="image-upload-wrapper">
+            <el-input v-model="form.exampleImage" placeholder="请输入图片URL" style="width: 280px;" />
+            <input 
+              ref="fileInput" 
+              type="file" 
+              accept="image/*" 
+              style="display: none" 
+              @change="handleFileChange"
+            />
+            <el-button type="primary" size="small" style="margin-left: 10px;" @click="triggerFileInput">
+              {{ uploading ? '上传中...' : '上传图片' }}
+            </el-button>
+            <el-image 
+              v-if="form.exampleImage" 
+              :src="form.exampleImage" 
+              style="width: 80px; height: 80px; margin-top: 8px; border-radius: 4px;"
+              fit="cover"
+              :preview-src-list="[form.exampleImage]"
+            />
+          </div>
+        </el-form-item>
+
+        <el-form-item label="排序">
+          <el-input-number v-model="form.sort" :min="0" :max="999" />
+        </el-form-item>
+
         <el-form-item label="是否启用">
           <el-switch v-model="form.isEnabled" />
         </el-form-item>
@@ -163,6 +207,8 @@ export default {
       name: '',
       description: '',
       sizeValue: '',
+      exampleImage: '',
+      sort: 0,
       isEnabled: true
     })
 
@@ -226,6 +272,8 @@ export default {
       form.name = row.name
       form.description = row.description || ''
       form.sizeValue = row.size_value || ''
+      form.exampleImage = row.example_image || ''
+      form.sort = row.sort || 0
       form.isEnabled = row.is_enabled !== false
       dialogVisible.value = true
     }
@@ -235,6 +283,8 @@ export default {
       form.name = ''
       form.description = ''
       form.sizeValue = ''
+      form.exampleImage = ''
+      form.sort = 0
       form.isEnabled = true
       formRef.value?.resetFields()
     }
@@ -252,6 +302,8 @@ export default {
           name: form.name,
           description: form.description,
           sizeValue: form.sizeValue,
+          exampleImage: form.exampleImage,
+          sort: form.sort,
           isEnabled: form.isEnabled
         }
 
@@ -302,6 +354,53 @@ export default {
       }
     }
 
+    const fileInput = ref(null)
+    const uploading = ref(false)
+
+    const triggerFileInput = () => {
+      fileInput.value?.click()
+    }
+
+    const handleFileChange = async (e) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      // 检查大小
+      if (file.size / 1024 / 1024 >= 5) {
+        ElMessage.error('图片大小不能超过 5MB')
+        return
+      }
+
+      // 检查类型
+      if (!file.type.startsWith('image/')) {
+        ElMessage.error('只能上传图片文件')
+        return
+      }
+
+      uploading.value = true
+      try {
+        const token = store.state.token
+        const res = await api.uploadImageWithProgress(file, token)
+        const result = res.result || res
+
+        if (result.success) {
+          form.exampleImage = result.url
+          ElMessage.success('上传成功')
+        } else {
+          ElMessage.error(result.error || '上传失败')
+        }
+      } catch (err) {
+        console.error('上传失败:', err)
+        ElMessage.error('上传失败')
+      } finally {
+        uploading.value = false
+        // 清空 input，允许重复选择同一文件
+        if (fileInput.value) {
+          fileInput.value.value = ''
+        }
+      }
+    }
+
     const formatDate = (dateStr) => {
       if (!dateStr) return '-'
       const date = new Date(dateStr)
@@ -336,7 +435,11 @@ export default {
       handleEdit,
       handleSubmit,
       handleDelete,
-      formatDate
+      formatDate,
+      fileInput,
+      uploading,
+      triggerFileInput,
+      handleFileChange
     }
   }
 }

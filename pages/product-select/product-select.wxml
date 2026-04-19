@@ -19,91 +19,184 @@
   </view>
 
   <!-- 素材库切换 -->
-  <view class="lib-switch">
-    <view
-      class="switch-btn {{materialLibType === 'personal' ? 'active' : ''}}"
-      bindtap="switchMaterialLib"
-      data-type="personal"
-    >
-      个人素材库
-    </view>
-    <view
-      class="switch-btn {{materialLibType === 'enterprise' ? 'active' : ''}}"
-      bindtap="switchMaterialLib"
-      data-type="enterprise"
-      wx:if="{{hasEnterpriseLib}}"
-    >
-      企业素材库
-    </view>
-  </view>
-
-  <!-- 一级分类标签栏 -->
-  <view class="category-tabs primary-tabs" wx:if="{{primaryCategories.length > 0}}">
-    <view
-      wx:for="{{primaryCategories}}"
-      wx:key="_id"
-      class="tab-item {{currentPrimaryCategory === item.name ? 'active' : ''}}"
-      bindtap="selectPrimaryCategory"
-      data-name="{{item.name}}"
-      data-id="{{item._id}}"
-    >
-      {{item.name}}
+  <view class="filter-section">
+    <view class="filter-scroll-full">
+      <view class="filter-tags">
+        <view
+          class="filter-tag {{materialLibType === 'personal' ? 'active' : ''}}"
+          bindtap="switchMaterialLib"
+          data-type="personal"
+        >
+          我的个人素材库
+        </view>
+        <view
+          class="filter-tag {{materialLibType === 'enterprise' ? 'active' : ''}}"
+          bindtap="switchMaterialLib"
+          data-type="enterprise"
+          wx:if="{{hasEnterpriseLib}}"
+        >
+          {{enterpriseName}}的素材库
+        </view>
+      </view>
     </view>
   </view>
 
-  <!-- 二级分类标签栏 -->
-  <view class="category-tabs secondary-tabs" wx:if="{{currentPrimaryCategory}}">
-    <view
-      class="tab-item {{currentSecondaryCategory === '' ? 'active' : ''}}"
-      bindtap="selectSecondaryCategory"
-      data-id=""
-    >
-      全部
-    </view>
-    <view
-      wx:for="{{filteredSecondaryCategories}}"
-      wx:key="_id"
-      class="tab-item {{currentSecondaryCategory === item._id ? 'active' : ''}}"
-      bindtap="selectSecondaryCategory"
-      data-id="{{item._id}}"
-    >
-      {{item.name}}
-    </view>
+  <!-- 一级分类筛选行 -->
+  <view class="filter-section category-section" wx:if="{{primaryCategories.length > 0}}">
+    <scroll-view class="filter-scroll-full" scroll-x>
+      <view class="filter-tags">
+        <view
+          class="filter-tag {{currentPrimaryCategory === '' ? 'active' : ''}}"
+          bindtap="selectPrimaryCategory"
+          data-id=""
+          data-name=""
+        >
+          全部
+        </view>
+        <view
+          class="filter-tag {{currentPrimaryCategory === item._id ? 'active' : ''}}"
+          bindtap="selectPrimaryCategory"
+          data-id="{{item._id}}"
+          data-name="{{item.name}}"
+          wx:for="{{primaryCategories}}"
+          wx:key="_id"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 二级分类筛选行（独立一行，点击一级分类后显示） -->
+  <view class="filter-section sub-category-section" wx:if="{{currentPrimaryCategory && filteredSecondaryCategories.length > 0}}">
+    <scroll-view class="filter-scroll-full" scroll-x>
+      <view class="filter-tags">
+        <view
+          class="filter-tag small {{currentSecondaryCategory === '' ? 'active' : ''}}"
+          bindtap="selectSecondaryCategory"
+          data-id=""
+        >
+          全部
+        </view>
+        <view
+          class="filter-tag small {{currentSecondaryCategory === item._id ? 'active' : ''}}"
+          bindtap="selectSecondaryCategory"
+          data-id="{{item._id}}"
+          wx:for="{{filteredSecondaryCategories}}"
+          wx:key="_id"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 产品瀑布流 - 3列 -->
   <view class="waterfall-container" wx:if="{{products.length > 0}}">
+    <!-- 第0列 -->
+    <view class="waterfall-column">
       <view
         class="product-card"
-        wx:for="{{products}}"
+        wx:for="{{column0}}"
         wx:key="_id"
         bindtap="selectProduct"
         data-id="{{item._id}}"
-        data-name="{{item.name}}"
-        data-image="{{item.displayUrl || item.url}}"
+        data-name="{{item.title || item.name}}"
+        data-image="{{item.originalUrl || item.displayUrl}}"
         data-description="{{item.description}}"
       >
         <view class="product-image-wrapper">
           <image
             class="product-image"
-            src="{{item.displayUrl || item.url}}"
-            mode="heightFix"
+            src="{{item.displayUrl}}"
+            mode="aspectFit"
+            lazy-load
+            data-column="0"
+            data-index="{{index}}"
           />
         </view>
         <view class="product-info">
-          <text class="product-name">{{item.name}}</text>
+          <text class="product-name">{{item.title || item.name}}</text>
         </view>
         <view class="select-icon {{selectedProductId === item._id ? 'active' : ''}}">
           <text>{{selectedProductId === item._id ? '✓' : ''}}</text>
         </view>
       </view>
+    </view>
+    <!-- 第1列 -->
+    <view class="waterfall-column">
+      <view
+        class="product-card"
+        wx:for="{{column1}}"
+        wx:key="_id"
+        bindtap="selectProduct"
+        data-id="{{item._id}}"
+        data-name="{{item.title || item.name}}"
+        data-image="{{item.originalUrl || item.displayUrl}}"
+        data-description="{{item.description}}"
+      >
+        <view class="product-image-wrapper">
+          <image
+            class="product-image"
+            src="{{item.displayUrl}}"
+            mode="aspectFit"
+            lazy-load
+            data-column="1"
+            data-index="{{index}}"
+          />
+        </view>
+        <view class="product-info">
+          <text class="product-name">{{item.title || item.name}}</text>
+        </view>
+        <view class="select-icon {{selectedProductId === item._id ? 'active' : ''}}">
+          <text>{{selectedProductId === item._id ? '✓' : ''}}</text>
+        </view>
+      </view>
+    </view>
+    <!-- 第2列 -->
+    <view class="waterfall-column">
+      <view
+        class="product-card"
+        wx:for="{{column2}}"
+        wx:key="_id"
+        bindtap="selectProduct"
+        data-id="{{item._id}}"
+        data-name="{{item.title || item.name}}"
+        data-image="{{item.originalUrl || item.displayUrl}}"
+        data-description="{{item.description}}"
+      >
+        <view class="product-image-wrapper">
+          <image
+            class="product-image"
+            src="{{item.displayUrl}}"
+            mode="aspectFit"
+            lazy-load
+            data-column="2"
+            data-index="{{index}}"
+          />
+        </view>
+        <view class="product-info">
+          <text class="product-name">{{item.title || item.name}}</text>
+        </view>
+        <view class="select-icon {{selectedProductId === item._id ? 'active' : ''}}">
+          <text>{{selectedProductId === item._id ? '✓' : ''}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未登录提示 -->
+  <view wx:if="{{showLoginTip}}" class="login-tip">
+    <text class="tip-line">登录后可使用素材库</text>
+    <text class="tip-line">上传管理您自己的商品/产品</text>
+    <text class="tip-line highlight">创意图文 一键生成！</text>
+    <button class="login-btn" bindtap="goToLogin">去登录</button>
   </view>
 
   <!-- 空状态 -->
-  <view wx:if="{{products.length === 0 && !loading}}" class="empty">
+  <view wx:if="{{products.length === 0 && !loading && !showLoginTip}}" class="empty">
     <image class="empty-icon" src="/assets/icons/empty.png" mode="aspectFit" />
     <text class="empty-text">暂无素材</text>
-    <text class="empty-tip">请先上传素材到素材库</text>
   </view>
 
   <!-- 加载中 -->
@@ -112,12 +205,12 @@
   </view>
 
   <!-- 加载更多 -->
-  <view wx:if="{{hasMore && !loading && products.length > 0}}" class="load-more" bindtap="loadMore">
+  <view wx:if="{{hasMore && !loading && products.length > 0}}" class="load-more" bindtap="onReachBottom">
     <text>加载更多</text>
   </view>
 
   <!-- 底部按钮 -->
   <view class="footer-btn" wx:if="{{selectedProductId}}">
-    <button class="next-btn" bindtap="goToGenerate">下一步</button>
+    <button class="next-btn" bindtap="confirmSelect">下一步</button>
   </view>
 </view>

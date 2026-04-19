@@ -1,0 +1,138 @@
+/* pages/article-detail/article-detail.wxss */
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* 加载中 */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+/* 错误提示 */
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 40rpx;
+  color: #999;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+.back-btn {
+  margin-top: 40rpx;
+  padding: 20rpx 60rpx;
+  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+  color: #fff;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.back-btn::after {
+  border: none;
+}
+
+/* 文章头部 */
+.article-header {
+  background: #fff;
+  padding: 40rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.article-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.5;
+  display: block;
+}
+
+/* 文章内容 */
+.article-content {
+  background: #fff;
+  padding: 30rpx;
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #333;
+}
+
+/* 文章内容中的样式 */
+.article-content rich-text {
+  width: 100%;
+}
+
+.article-content rich-text p {
+  margin-bottom: 20rpx;
+  line-height: 1.8;
+}
+
+.article-content rich-text h2 {
+  font-size: 34rpx;
+  font-weight: bold;
+  margin: 30rpx 0 20rpx;
+  color: #333;
+}
+
+.article-content rich-text h3 {
+  font-size: 30rpx;
+  font-weight: bold;
+  margin: 24rpx 0 16rpx;
+  color: #333;
+}
+
+.article-content rich-text img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 20rpx 0;
+  border-radius: 8rpx;
+}
+
+.article-content rich-text ul,
+.article-content rich-text ol {
+  padding-left: 40rpx;
+  margin: 16rpx 0;
+}
+
+.article-content rich-text li {
+  margin: 8rpx 0;
+}
+
+/* 图片预览列表 */
+.image-list {
+  background: #fff;
+  margin-top: 20rpx;
+  padding: 20rpx 30rpx 30rpx;
+}
+
+.image-list-title {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.image-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.image-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16rpx;
+}
+
+.preview-thumb {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}

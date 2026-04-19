@@ -31,9 +31,9 @@ function generateSign(params, key) {
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
-  const { userId, amount, type } = event
+  const { userId, amount, bonus = 0, configId = '', type } = event
 
-  console.log('createRecharge params:', { userId, amount, type })
+  console.log('createRecharge params:', { userId, amount, bonus, configId, type })
   console.log('OPENID:', wxContext.OPENID)
 
   if (!API_KEY) {
@@ -47,8 +47,8 @@ exports.main = async (event, context) => {
     // 获取用户的 openid
     const openId = wxContext.OPENID
 
-    // 生成订单号
-    const outTradeNo = `${Date.now()}${Math.floor(Math.random() * 10000)}`
+    // 生成订单号（使用 rc_ 前缀，支付回调据此识别为充值订单）
+    const outTradeNo = `rc_${Date.now()}${Math.floor(Math.random() * 10000)}`
 
     // 金额转换：元转分
     const totalFee = Math.round(amount * 100)
@@ -58,13 +58,16 @@ exports.main = async (event, context) => {
       user_id: userId,
       openid: openId,
       amount: amount,
+      bonus: bonus,
+      config_id: configId,
       amount_cent: totalFee,
       type: type,
       payment_method: 'wechat_pay',
       status: 'pending',
       out_trade_no: outTradeNo,
       mch_id: MCH_ID,
-      created_at: new Date().toISOString() // 使用 ISO 字符串格式，方便查询
+      created_at: db.serverDate(), // 使用云开发 serverDate，支持排序
+      _created_timestamp: Date.now() // 时间戳，用于客户端排序
     }
 
     const rechargeRes = await db.collection('recharges').add({
@@ -85,7 +88,7 @@ exports.main = async (event, context) => {
       out_trade_no: outTradeNo,
       total_fee: totalFee,
       spbill_create_ip: wxContext.CLIENTIP || '127.0.0.1',
-      notify_url: 'https://liandaofutou-2gdayw0068d938b3-1417102114.ap-shanghai.app.tcloudbase.com/rechargeNotify/',
+      notify_url: 'https://liandaofutou-2gdayw0068d938b3-1417102114.ap-shanghai.app.tcloudbase.com/paymentNotify',
       trade_type: 'JSAPI',
       openid: openId           // 用户 openid
     }

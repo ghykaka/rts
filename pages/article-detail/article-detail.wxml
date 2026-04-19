@@ -1,0 +1,44 @@
+<!--pages/article-detail/article-detail.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:elif="{{error}}" class="error">
+    <text>{{error}}</text>
+    <button class="back-btn" bindtap="goBack">返回</button>
+  </view>
+
+  <!-- 文章内容 -->
+  <block wx:else>
+    <!-- 文章标题 -->
+    <view class="article-header">
+      <text class="article-title">{{article.title}}</text>
+    </view>
+
+    <!-- 文章内容 -->
+    <view class="article-content">
+      <rich-text nodes="{{article.content}}" selectable="{{true}}"></rich-text>
+    </view>
+
+    <!-- 图片预览列表 -->
+    <view wx:if="{{contentImages.length > 0}}" class="image-list">
+      <view class="image-list-title">文章图片（点击预览）</view>
+      <scroll-view scroll-x class="image-scroll">
+        <view class="image-row">
+          <block wx:for="{{contentImages}}" wx:key="index">
+            <image 
+              class="preview-thumb"
+              src="{{item}}"
+              mode="aspectFill"
+              data-index="{{index}}"
+              bindtap="previewImage"
+            />
+          </block>
+        </view>
+      </scroll-view>
+    </view>
+  </block>
+</view>

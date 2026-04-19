@@ -104,6 +104,10 @@
               <el-button-group>
                 <el-button size="small" @click="execCommand('removeFormat')" title="清除格式">清除</el-button>
               </el-button-group>
+              <el-button size="small" @click="handleImageUpload" title="上传图片">
+                <el-icon><Picture /></el-icon> 图片
+              </el-button>
+              <input type="file" ref="imageInputRef" accept="image/*" style="display:none" @change="handleImageFileSelect" />
             </div>
             <div 
               ref="editorRef"
@@ -132,8 +136,9 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, CopyDocument } from '@element-plus/icons-vue'
+import { Plus, CopyDocument, Picture } from '@element-plus/icons-vue'
 import api from '@/api'
+import { callCloudFunction, callCloudFunctionDirect } from '@/api'
 import store from '@/store'
 
 const token = () => store.state.token
@@ -173,7 +178,7 @@ const formRules = {
 const loadData = async () => {
   loading.value = true
   try {
-    const res = await api.callCloudFunction('adminarticle', {
+    const res = await callCloudFunction('adminarticle', {
       action: 'list',
       data: { page: pagination.page, pageSize: pagination.pageSize, ...searchForm }
     }, token())
@@ -240,7 +245,7 @@ const handleEdit = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm(`确定要删除文章"${row.title}"吗？`, '提示', { type: 'warning' })
-    const res = await api.callCloudFunction('adminarticle', { action: 'delete', data: { id: row._id } }, token())
+    const res = await callCloudFunction('adminarticle', { action: 'delete', data: { id: row._id } }, token())
     const result = res.result || res
     if (result.success) {
       ElMessage.success('删除成功')
@@ -270,11 +275,78 @@ const handleEditorInput = () => {
   }
 }
 
-// 处理粘贴（去除格式）
-const handlePaste = (e) => {
+// 处理粘贴（去除格式，支持图片粘贴上传）
+const handlePaste = async (e) => {
   e.preventDefault()
+  
+  // 检查是否有图片
+  const items = e.clipboardData?.items
+  if (items) {
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          await uploadImageFile(file)
+          return
+        }
+      }
+    }
+  }
+  
+  // 默认粘贴纯文本
   const text = e.clipboardData.getData('text/plain')
   document.execCommand('insertText', false, text)
+}
+
+// 触发图片上传
+const imageInputRef = ref(null)
+const handleImageUpload = () => {
+  imageInputRef.value?.click()
+}
+
+// 选择图片后上传
+const handleImageFileSelect = async (e) => {
+  const file = e.target.files?.[0]
+  if (file) {
+    await uploadImageFile(file)
+    e.target.value = '' // 清空选择
+  }
+}
+
+// 上传图片文件（前端直传COS）
+const uploadImageFile = async (file) => {
+  try {
+    ElMessage.info('正在上传图片...')
+    
+    // 获取COS预签名URL
+    const authRes = await callCloudFunction('generateCosSignature', {})
+    
+    const auth = authRes.result?.data || authRes.data
+    if (!auth?.uploadUrl) {
+      throw new Error(authRes.result?.error || '获取上传签名失败')
+    }
+    
+    // 直接上传到COS
+    const res = await fetch(auth.uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type || 'image/jpeg'
+      },
+      body: file
+    })
+    
+    if (!res.ok) {
+      throw new Error(`上传失败: ${res.status}`)
+    }
+    
+    // 在编辑器中插入图片
+    const imgHtml = `<img src="${auth.url}" style="max-width:100%;height:auto;" />`
+    document.execCommand('insertHTML', false, imgHtml)
+    ElMessage.success('图片上传成功')
+  } catch (err) {
+    console.error('上传图片失败', err)
+    ElMessage.error('图片上传失败: ' + (err.message || ''))
+  }
 }
 
 // 复制路径
@@ -313,9 +385,9 @@ const handleSubmit = async () => {
     let res
     if (editingId.value) {
       data.id = editingId.value
-      res = await api.callCloudFunction('adminarticle', { action: 'update', data }, token())
+      res = await callCloudFunction('adminarticle', { action: 'update', data }, token())
     } else {
-      res = await api.callCloudFunction('adminarticle', { action: 'add', data }, token())
+      res = await callCloudFunction('adminarticle', { action: 'add', data }, token())
     }
     
     const result = res.result || res
@@ -324,7 +396,7 @@ const handleSubmit = async () => {
       if (!editingId.value && result.id) {
         // 新增的文章，根据返回的ID生成路径并更新
         const newPath = `/article/${result.id}`
-        await api.callCloudFunction('adminarticle', { 
+        await callCloudFunction('adminarticle', { 
           action: 'update', 
           data: { id: result.id, path: newPath } 
         }, token())

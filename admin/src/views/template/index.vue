@@ -7,23 +7,36 @@
           <el-input v-model="searchForm.keyword" placeholder="请输入模板名称" clearable />
         </el-form-item>
         <el-form-item label="模板类型">
-          <el-select v-model="searchForm.templateType" placeholder="请选择" clearable>
+          <el-select v-model="searchForm.templateType" placeholder="全部" clearable style="width: 120px">
             <el-option label="全部" value="" />
             <el-option label="图片" value="image" />
             <el-option label="视频" value="video" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择" clearable>
+          <el-select v-model="searchForm.status" placeholder="全部" clearable style="width: 120px">
             <el-option label="全部" value="" />
             <el-option label="启用" value="enabled" />
             <el-option label="禁用" value="disabled" />
           </el-select>
         </el-form-item>
-        <el-form-item label="一级分类">
-          <el-select v-model="searchForm.category1" placeholder="请选择" clearable>
+        <el-form-item label="首页推荐">
+          <el-select v-model="searchForm.recommendHome" placeholder="全部" clearable style="width: 120px">
             <el-option label="全部" value="" />
-            <el-option v-for="item in category1Options" :key="item._id" :label="item.name" :value="item.name" />
+            <el-option label="是" value="true" />
+            <el-option label="否" value="false" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="一级分类">
+          <el-select v-model="searchForm.category1" placeholder="全部" clearable style="width: 140px" @change="handleSearchCategory1Change">
+            <el-option label="全部" value="" />
+            <el-option v-for="item in category1Options" :key="item._id" :label="item.name" :value="item._id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="二级分类">
+          <el-select v-model="searchForm.category2" placeholder="全部" clearable style="width: 140px">
+            <el-option label="全部" value="" />
+            <el-option v-for="item in searchCategory2Options" :key="item._id" :label="item.name" :value="item._id" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -46,40 +59,73 @@
 
     <!-- 数据表格 -->
     <el-table :data="tableData" v-loading="loading" stripe border>
-      <el-table-column prop="templateName" label="模板名称" min-width="150" show-overflow-tooltip />
-      <el-table-column prop="templateType" label="类型" width="80" align="center">
+      <el-table-column prop="templateType" label="类型" width="70" align="center">
         <template #default="{ row }">
           <el-tag :type="row.templateType === 'image' ? 'success' : 'warning'" size="small">
             {{ row.templateType === 'image' ? '图片' : '视频' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="industry" label="所属行业" width="150" show-overflow-tooltip>
+      <el-table-column label="图片" width="70" align="center">
+        <template #default="{ row }">
+          <div class="thumb-square" v-if="row.thumbnail">
+            <el-image 
+              :src="row.thumbnail" 
+              fit="contain"
+              :preview-src-list="[row.originalImage || row.thumbnail]" 
+              preview-teleported
+              :hide-on-click-modal="true"
+            />
+          </div>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="templateCode" label="编号" width="80" align="center">
+        <template #default="{ row }">
+          {{ row.templateCode || '-' }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="templateName" label="模板名称" min-width="150" show-overflow-tooltip />
+      <el-table-column prop="industry" label="行业" width="150" show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.industry?.join('、') || '-' }}
         </template>
       </el-table-column>
-      <el-table-column prop="category1" label="一级分类" width="100" />
-      <el-table-column prop="category2" label="二级分类" width="100" />
+      <el-table-column label="分类" width="160">
+        <template #default="{ row }">
+          {{ getCategoryName(row.category1) || '-' }}{{ row.category2 ? ' / ' + getCategoryName(row.category2) : '' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="tags" label="标签" width="150" show-overflow-tooltip>
         <template #default="{ row }">
           {{ row.tags?.join('、') || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="缩略图" width="100" align="center">
+      <el-table-column prop="recommendHome" label="首页推荐" width="90" align="center">
         <template #default="{ row }">
-          <el-image 
-            v-if="row.thumbnail" 
-            :src="row.thumbnail" 
-            fit="cover" 
-            :preview-src-list="[row.thumbnail]" 
-            style="width: 60px; height: 40px;"
-            preview-teleported
+          <el-switch
+            :model-value="row.recommendHome === true"
+            @change="(val) => handleRecommendChange(row, val)"
+            size="small"
           />
-          <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80" align="center">
+      <el-table-column label="关联素材" width="90" align="center">
+        <template #default="{ row }">
+          <el-tag :type="row.needMaterial ? 'warning' : 'info'" size="small">
+            {{ row.needMaterial ? '是' : '否' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="绑定功能" width="120" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.functionId" type="success" size="small">
+            已绑定
+          </el-tag>
+          <span v-else style="color: #c0c4cc; font-size: 12px">未绑定</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" label="状态" width="70" align="center">
         <template #default="{ row }">
           <el-tag :type="row.status === 'enabled' ? 'success' : 'info'" size="small">
             {{ row.status === 'enabled' ? '启用' : '禁用' }}
@@ -125,6 +171,9 @@
             <el-radio value="image">图片</el-radio>
             <el-radio value="video">视频</el-radio>
           </el-radio-group>
+          <span style="margin-left: 30px; color: #909399; font-size: 14px;">
+            编号：<span style="color: #409eff; font-weight: bold;">{{ form.templateCode || '新增时自动生成' }}</span>
+          </span>
         </el-form-item>
         <el-form-item label="模板名称" prop="templateName">
           <el-input v-model="form.templateName" placeholder="请输入模板名称" maxlength="100" />
@@ -139,12 +188,12 @@
         </el-form-item>
         <el-form-item label="一级分类">
           <el-select v-model="form.category1" placeholder="请选择一级分类" style="width: 100%;" clearable @change="handleCategory1Change">
-            <el-option v-for="item in category1Options" :key="item._id" :label="item.name" :value="item.name" />
+            <el-option v-for="item in category1Options" :key="item._id" :label="item.name" :value="item._id" />
           </el-select>
         </el-form-item>
         <el-form-item label="二级分类">
           <el-select v-model="form.category2" placeholder="请选择二级分类" style="width: 100%;" clearable :disabled="!form.category1">
-            <el-option v-for="item in category2Options" :key="item._id" :label="item.name" :value="item.name" />
+            <el-option v-for="item in category2Options" :key="item._id" :label="item.name" :value="item._id" />
           </el-select>
         </el-form-item>
         <el-form-item label="模板标签">
@@ -155,54 +204,78 @@
         <el-form-item label="模板提示词">
           <el-input v-model="form.prompt" type="textarea" :rows="4" placeholder="请输入模板提示词（传入工作流的字段名为prompt）" />
         </el-form-item>
-        <el-form-item label="模板大图">
-          <div class="upload-wrapper">
-            <!-- 大图上传区域 -->
-            <div class="main-image-area">
-              <el-upload
-                v-if="!form.originalImage"
-                class="image-uploader"
-                :auto-upload="false"
-                :show-file-list="false"
-                :before-upload="beforeOriginalUpload"
-                :on-change="handleOriginalChange"
-                accept="image/*"
-              >
-                <el-icon class="upload-icon"><Plus /></el-icon>
-                <div class="upload-hint">点击上传大图</div>
-              </el-upload>
-              <div v-else class="image-preview" :style="{ aspectRatio: imageAspectRatio }">
-                <img :src="form.originalImage" class="preview-image" />
-                <div class="image-overlay">
-                  <el-button type="primary" size="small" @click="handleReupload">
-                    <el-icon><Upload /></el-icon> 重新上传
-                  </el-button>
-                  <el-button type="info" size="small" @click="handlePreviewOriginal">
-                    <el-icon><View /></el-icon> 查看原图
-                  </el-button>
+        <el-form-item label="参考样图">
+          <div class="reference-images">
+            <div class="reference-images-list">
+              <div v-for="(img, index) in form.referenceImages" :key="index" class="reference-image-item">
+                <el-image :src="img" fit="cover" style="width: 60px; height: 60px; border-radius: 4px" />
+                <el-button type="danger" size="small" circle icon="Delete" class="delete-btn" @click="removeReferenceImage(index)" />
+              </div>
+            </div>
+            <el-button type="primary" size="small" @click="triggerUpload('referenceImage')" :loading="uploading.referenceImage">
+              <el-icon><Plus /></el-icon> 添加参考图
+            </el-button>
+            <span style="margin-left: 8px; color: #999; font-size: 12px">用于小程序生成页顶部展示</span>
+            <input ref="referenceImageInput" type="file" accept="image/*" style="display: none" @change="handleReferenceImageChange($event)" />
+          </div>
+        </el-form-item>
+        <el-form-item label="模板图片">
+          <div class="template-image-section">
+            <!-- 大图区域 -->
+            <div class="image-section">
+              <div class="section-label">大图（原图）</div>
+              <div class="main-image-area">
+                <el-upload
+                  v-if="!form.originalImage"
+                  class="image-uploader"
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  :before-upload="beforeOriginalUpload"
+                  :on-change="handleOriginalChange"
+                  accept="image/*"
+                >
+                  <el-icon class="upload-icon"><Plus /></el-icon>
+                  <div class="upload-hint">点击上传大图</div>
+                </el-upload>
+                <div v-else class="image-preview" :style="{ aspectRatio: imageAspectRatio }">
+                  <img :src="form.originalImage" class="preview-image" />
+                  <div class="image-actions">
+                    <el-button type="primary" size="small" @click="triggerUpload">
+                      <el-icon><Upload /></el-icon> 重新上传
+                    </el-button>
+                    <el-button type="info" size="small" @click="handlePreviewOriginal">
+                      <el-icon><View /></el-icon> 查看大图
+                    </el-button>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <!-- 缩略图预览区域 -->
-            <div v-if="form.thumbnail" class="thumbnail-area">
-              <div class="thumbnail-title">缩略图预览</div>
-              <div class="thumbnail-preview">
-                <el-image 
-                  :src="form.thumbnail" 
-                  :preview-src-list="[form.thumbnail]" 
-                  fit="cover"
-                  preview-teleported
-                />
+
+            <!-- 缩略图区域 -->
+            <div class="image-section">
+              <div class="section-label">缩略图（300px）</div>
+              <div class="thumbnail-area">
+                <div v-if="form.thumbnail" class="thumbnail-preview">
+                  <el-image 
+                    :src="form.thumbnail" 
+                    :preview-src-list="[form.originalImage || form.thumbnail]" 
+                    fit="cover"
+                    preview-teleported
+                    :hide-on-click-modal="true"
+                  />
+                </div>
+                <div v-else class="thumbnail-placeholder">
+                  <el-icon><Picture /></el-icon>
+                  <span>暂无缩略图</span>
+                </div>
+                <div class="thumbnail-tip">列表页显示，点击查看原图</div>
               </div>
-              <div class="thumbnail-tip">300px宽度预览</div>
             </div>
-            
-            <div class="upload-tip">
-              <p>支持JPG、PNG格式</p>
-              <p>文件大小不超过2MB</p>
-              <p>上传后自动生成300px缩略图</p>
-            </div>
+          </div>
+          <div class="upload-tip">
+            <p>支持JPG、PNG格式，建议尺寸 1080x1920 或 4:3</p>
+            <p>文件大小不超过2MB</p>
+            <p>上传后自动生成300px宽度缩略图</p>
           </div>
         </el-form-item>
         <el-form-item label="状态" prop="status">
@@ -211,19 +284,46 @@
             <el-radio value="disabled">禁用</el-radio>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="关联素材">
+          <el-switch v-model="form.needMaterial" active-value="true" inactive-value="false" />
+          <span style="margin-left: 12px; color: #909399; font-size: 13px;">
+            开启后，用户点击该模板将进入素材选择页；关闭则直接进入生成页
+          </span>
+        </el-form-item>
+        <el-form-item label="绑定功能">
+          <el-select v-model="form.functionId" placeholder="请选择绑定的功能（可选）" clearable style="width: 100%;">
+            <el-option
+              v-for="func in functionOptions"
+              :key="func._id"
+              :label="func.name"
+              :value="func._id"
+            />
+          </el-select>
+          <div style="color: #909399; font-size: 12px; margin-top: 4px">
+            绑定功能后，用户点击该模板将使用该功能的配置（字段、尺寸、价格等）进行生成
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 图片预览组件 - 点击外部可关闭 -->
+    <el-image-viewer
+      v-if="previewVisible"
+      :url-list="[previewImageUrl]"
+      :hide-on-click-modal="true"
+      @close="previewVisible = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Upload, View } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox, ElImageViewer } from 'element-plus'
+import { Search, Refresh, Plus, Upload, View, Picture, Delete } from '@element-plus/icons-vue'
 import api from '@/api'
 import store from '@/store'
 
@@ -234,8 +334,13 @@ const searchForm = reactive({
   keyword: '',
   templateType: '',
   status: '',
-  category1: ''
+  recommendHome: '',
+  category1: '',
+  category2: ''
 })
+
+// 搜索用的二级分类选项
+const searchCategory2Options = ref([])
 
 // 分页
 const pagination = reactive({
@@ -247,6 +352,12 @@ const pagination = reactive({
 // 表格数据
 const tableData = ref([])
 const loading = ref(false)
+
+// 参考图上传
+const referenceImageInput = ref(null)
+const uploading = reactive({
+  referenceImage: false
+})
 
 // 弹窗
 const dialogVisible = ref(false)
@@ -268,7 +379,10 @@ const form = reactive({
   prompt: '',
   originalImage: '',
   thumbnail: '',
-  status: 'enabled'
+  referenceImages: [],
+  status: 'enabled',
+  needMaterial: 'false',
+  functionId: ''
 })
 
 // 表单验证
@@ -285,6 +399,8 @@ const tagOptions = ref([
 ])
 const category1Options = ref([])
 const category2Options = ref([])
+const allCategoriesMap = ref({}) // 所有分类的ID到名称的映射
+const functionOptions = ref([]) // 功能列表选项
 
 // 加载行业数据
 const loadIndustries = async () => {
@@ -305,8 +421,16 @@ const loadCategories = async () => {
     const res = await api.getCategories(token())
     const result = res.result || res
     if (result.success) {
+      // 构建所有分类的映射
+      const allList = result.list || []
+      allCategoriesMap.value = {}
+      allList.forEach(cat => {
+        if (cat.status === 'enabled') {
+          allCategoriesMap.value[cat._id] = cat.name
+        }
+      })
       // 一级分类
-      category1Options.value = (result.list || [])
+      category1Options.value = allList
         .filter(item => item.level === 1 && item.status === 'enabled')
         .sort((a, b) => (a.order || 0) - (b.order || 0))
     }
@@ -315,7 +439,45 @@ const loadCategories = async () => {
   }
 }
 
-// 一级分类变更时加载对应的二级分类
+// 加载功能列表
+const loadFunctions = async () => {
+  try {
+    const res = await api.getWorkflowFunctions({ page: 1, pageSize: 500 }, token())
+    const result = res.result || res
+    console.log('加载功能列表返回:', result)
+    if (result.success) {
+      // getworkflowfunctions 返回的是 data 字段
+      functionOptions.value = (result.data || []).filter(item => item.is_active !== false)
+    }
+  } catch (err) {
+    console.error('加载功能列表失败', err)
+  }
+}
+
+// 搜索用的一级分类变更
+const handleSearchCategory1Change = async (val) => {
+  searchForm.category2 = '' // 清空搜索的二级分类
+  searchCategory2Options.value = []
+  
+  if (!val) return
+  
+  try {
+    const res = await api.getCategories(token())
+    const result = res.result || res
+    if (result.success) {
+      const parent = (result.list || []).find(item => item.name === val && item.level === 1)
+      if (parent) {
+        searchCategory2Options.value = (result.list || [])
+          .filter(item => item.level === 2 && item.parentId === parent._id && item.status === 'enabled')
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+      }
+    }
+  } catch (err) {
+    console.error('加载二级分类失败', err)
+  }
+}
+
+// 表单用的一级分类变更时加载对应的二级分类
 const handleCategory1Change = async (val) => {
   form.category2 = '' // 清空二级分类
   category2Options.value = []
@@ -326,8 +488,8 @@ const handleCategory1Change = async (val) => {
     const res = await api.getCategories(token())
     const result = res.result || res
     if (result.success) {
-      // 找到选中的一级分类
-      const parent = (result.list || []).find(item => item.name === val && item.level === 1)
+      // 找到选中的一级分类（使用ID查找）
+      const parent = (result.list || []).find(item => item._id === val && item.level === 1)
       if (parent) {
         category2Options.value = (result.list || [])
           .filter(item => item.level === 2 && item.parentId === parent._id && item.status === 'enabled')
@@ -347,7 +509,8 @@ const loadCategoriesForEdit = async () => {
     const res = await api.getCategories(token())
     const result = res.result || res
     if (result.success) {
-      const parent = (result.list || []).find(item => item.name === form.category1 && item.level === 1)
+      // 使用ID查找一级分类
+      const parent = (result.list || []).find(item => item._id === form.category1 && item.level === 1)
       if (parent) {
         category2Options.value = (result.list || [])
           .filter(item => item.level === 2 && item.parentId === parent._id && item.status === 'enabled')
@@ -357,6 +520,12 @@ const loadCategoriesForEdit = async () => {
   } catch (err) {
     console.error('加载二级分类失败', err)
   }
+}
+
+// 根据ID获取分类名称
+const getCategoryName = (categoryId) => {
+  if (!categoryId) return ''
+  return allCategoriesMap.value[categoryId] || categoryId
 }
 
 // 加载数据
@@ -395,7 +564,9 @@ const handleReset = () => {
   searchForm.keyword = ''
   searchForm.templateType = ''
   searchForm.status = ''
+  searchForm.recommendHome = ''
   searchForm.category1 = ''
+  searchForm.category2 = ''
   pagination.page = 1
   loadData()
 }
@@ -414,7 +585,10 @@ const handleAdd = () => {
     prompt: '',
     originalImage: '',
     thumbnail: '',
-    status: 'enabled'
+    referenceImages: [],
+    status: 'enabled',
+    needMaterial: 'false',
+    functionId: ''
   })
   imageAspectRatio.value = 'auto'
   dialogTitle.value = '新增模板'
@@ -424,18 +598,53 @@ const handleAdd = () => {
 // 编辑
 const handleEdit = async (row) => {
   editingId.value = row._id
+  
+  // 根据名称查找对应的分类 ID
+  // 由于旧数据中 category1/category2 存储的是名称，需要转换
+  let category1Id = row.category1 || ''
+  let category2Id = row.category2 || ''
+  
+  // 确保分类选项已加载
+  if (!category1Options.value || category1Options.value.length === 0) {
+    await loadCategories()
+  }
+  
+  // 如果 category1 是名称（不在选项中），查找对应的分类
+  const cat1Exists = category1Options.value.some(c => c._id === category1Id)
+  if (category1Id && !cat1Exists) {
+    const foundCat1 = category1Options.value.find(c => c.name === category1Id)
+    if (foundCat1) {
+      category1Id = foundCat1._id
+      // 加载对应的二级分类
+      await loadCategoriesForEdit()
+    }
+  }
+  
+  // 如果 category2 是名称，查找对应的分类
+  const cat2Exists = category2Options.value.some(c => c._id === category2Id)
+  if (category2Id && !cat2Exists) {
+    const foundCat2 = category2Options.value.find(c => c.name === category2Id)
+    if (foundCat2) {
+      category2Id = foundCat2._id
+    }
+  }
+  
   Object.assign(form, {
     templateType: row.templateType,
     templateName: row.templateName,
     templateDesc: row.templateDesc || '',
     industry: row.industry || [],
-    category1: row.category1 || '',
-    category2: row.category2 || '',
+    category1: category1Id,
+    category2: category2Id,
     tags: row.tags || [],
     prompt: row.prompt || '',
     originalImage: row.originalImage || '',
     thumbnail: row.thumbnail || '',
-    status: row.status
+    referenceImages: row.reference_images || [],
+    status: row.status,
+    templateCode: row.templateCode || '',
+    needMaterial: String(row.needMaterial || false),
+    functionId: row.functionId || ''
   })
   imageAspectRatio.value = 'auto'
   
@@ -518,7 +727,7 @@ const handleOriginalChange = async (uploadFile) => {
   }
   
   try {
-    ElMessage.info('正在压缩上传...')
+    ElMessage.info('正在上传...')
     
     // 先获取图片比例
     await new Promise((resolve) => {
@@ -567,76 +776,77 @@ const handleReupload = () => {
   imageAspectRatio.value = 'auto'
 }
 
-// 查看原图
-const handlePreviewOriginal = () => {
-  if (form.originalImage) {
-    // 创建一个新的窗口打开原图
-    window.open(form.originalImage, '_blank')
+// 删除参考图
+const removeReferenceImage = (index) => {
+  form.referenceImages.splice(index, 1)
+}
+
+// 触发上传
+const triggerUpload = (field) => {
+  if (field === 'referenceImage') {
+    referenceImageInput.value?.click()
+  } else {
+    // 原图上传 - 动态创建 input
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (e) => {
+      const file = e.target.files[0]
+      if (file) {
+        handleOriginalChange({ raw: file })
+      }
+    }
+    input.click()
   }
 }
 
-// 压缩并上传图片
-// 1. 原图压缩后上传（最大边800px，0.8质量，确保base64不超过1MB）
-// 2. 生成300px宽度的缩略图（0.7质量）
-const uploadAndCompress = async (file) => {
-  // 1. 压缩原图
-  const originalBlob = await new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        // 原图压缩：最大边限制在800px
-        const canvas = document.createElement('canvas')
-        let w = img.width
-        let h = img.height
-        const maxSize = 800
-        
-        if (w > maxSize || h > maxSize) {
-          if (w > h) {
-            h = Math.round(h * maxSize / w)
-            w = maxSize
-          } else {
-            w = Math.round(w * maxSize / h)
-            h = maxSize
-          }
-        }
-        
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, w, h)
-        
-        // 0.8质量，循环压缩直到小于800KB（确保base64后不超过1MB）
-        const compress = () => {
-          canvas.toBlob((blob) => {
-            if (blob && blob.size > 800 * 1024) {
-              canvas.toBlob(compress, 'image/jpeg', 0.6)
-            } else {
-              resolve(blob)
-            }
-          }, 'image/jpeg', 0.8)
-        }
-        compress()
-      }
-      img.onerror = reject
-      img.src = e.target.result
+// 处理参考图上传
+const handleReferenceImageChange = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  
+  try {
+    uploading.referenceImage = true
+    const res = await api.uploadImageWithProgress(file, token())
+    const result = res.result || res
+    
+    if (result.success) {
+      form.referenceImages.push(result.url)
+      ElMessage.success('上传成功')
+    } else {
+      ElMessage.error(result.error || '上传失败')
     }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+  } catch (err) {
+    ElMessage.error('上传失败')
+  } finally {
+    uploading.referenceImage = false
+    event.target.value = '' // 清空input
+  }
+}
+
+
+
+// 查看原图 - 使用 el-image-viewer 预览
+const previewVisible = ref(false)
+const previewImageUrl = ref('')
+
+const handlePreviewOriginal = () => {
+  if (form.originalImage) {
+    previewImageUrl.value = form.originalImage
+    previewVisible.value = true
+  }
+}
+
+// 上传图片 - 原图不压缩直接上传，缩略图前端压缩到300px宽度后上传
+const uploadAndCompress = async (file) => {
+  // 1. 原图直接上传（不压缩，保持原始质量）
+  const res1 = await api.uploadImageWithProgress(file, token())
   
-  const compressedFile = new File([originalBlob], 'original.jpg', { type: 'image/jpeg' })
-  console.log('压缩后原图:', (compressedFile.size / 1024).toFixed(1), 'KB')
-  
-  // 上传压缩后的原图
-  const res1 = await api.uploadImage(compressedFile, token())
-  const result1 = res1.result || res1
-  
-  if (!result1.success) {
-    throw new Error(result1.error || '原图上传失败')
+  if (!res1.success) {
+    throw new Error(res1.error || '原图上传失败')
   }
   
-  // 2. 生成并上传缩略图（300px宽度，0.7质量）
+  // 2. 生成并上传缩略图（宽度300px，等比缩放，保持原格式）
   const thumbnailBlob = await new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -651,9 +861,11 @@ const uploadAndCompress = async (file) => {
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight)
         
+        // 保持原图格式
+        const originalType = file.type || 'image/jpeg'
         canvas.toBlob((blob) => {
           resolve(blob)
-        }, 'image/jpeg', 0.7)
+        }, originalType, 0.9)
       }
       img.onerror = reject
       img.src = e.target.result
@@ -662,21 +874,21 @@ const uploadAndCompress = async (file) => {
     reader.readAsDataURL(file)
   })
   
-  const thumbFile = new File([thumbnailBlob], 'thumbnail.jpg', { type: 'image/jpeg' })
-  console.log('缩略图大小:', (thumbFile.size / 1024).toFixed(1), 'KB')
+  // 保持原图扩展名
+  const originalExt = file.name.split('.').pop() || 'jpg'
+  const thumbFile = new File([thumbnailBlob], `thumbnail.${originalExt}`, { type: file.type || 'image/jpeg' })
   
-  const res2 = await api.uploadImage(thumbFile, token())
-  const result2 = res2.result || res2
+  const res2 = await api.uploadImageWithProgress(thumbFile, token())
   
-  if (!result2.success) {
-    throw new Error(result2.error || '缩略图上传失败')
+  if (!res2.success) {
+    throw new Error(res2.error || '缩略图上传失败')
   }
   
   return {
     result: {
       success: true,
-      url: result1.url,
-      thumbnail: result2.url
+      url: res1.url,           // 原图URL
+      thumbnail: res2.url      // 缩略图URL（300px宽度）
     }
   }
 }
@@ -707,7 +919,10 @@ const handleSubmit = async () => {
       prompt: form.prompt,
       thumbnail: form.thumbnail,
       originalImage: form.originalImage,
-      status: form.status
+      reference_images: form.referenceImages,
+      status: form.status,
+      needMaterial: form.needMaterial === 'true',
+      functionId: form.functionId || ''
     }
     
     console.log('提交的数据:', JSON.stringify(data))
@@ -746,28 +961,59 @@ const formatDate = (date) => {
   return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+// 首页推荐切换
+const handleRecommendChange = async (row, value) => {
+  try {
+    const res = await api.updateTemplate({
+      id: row._id,
+      recommendHome: value
+    }, token())
+    const result = res.result || res
+    if (result.success) {
+      ElMessage.success(value ? '已设置首页推荐' : '已取消首页推荐')
+      loadData()
+    } else {
+      ElMessage.error(result.error || '操作失败')
+      loadData() // 恢复原状态
+    }
+  } catch (err) {
+    ElMessage.error('操作失败')
+    loadData()
+  }
+}
+
 onMounted(() => {
   loadData()
   loadIndustries()
   loadCategories()
+  loadFunctions()
 })
 </script>
+
+<style>
+/* 全局样式 - el-image-viewer 必须最高层级 */
+.el-image-viewer__wrapper {
+  z-index: 2147483647 !important;
+}
+.el-image-viewer {
+  z-index: 2147483647 !important;
+}
+.el-image-viewer__mask {
+  z-index: 2147483646 !important;
+}
+.el-icon {
+  z-index: 2147483647 !important;
+}
+[class*="el-image-viewer"] {
+  z-index: 2147483647 !important;
+}
+</style>
 
 <style scoped>
 .template-container {
   padding: 20px;
 }
 
-/* 修复图片预览层级问题 - 强制提升到最高层 */
-:deep(.el-image-viewer__wrapper) {
-  z-index: 99999 !important;
-}
-:deep(.el-image-viewer) {
-  z-index: 99999 !important;
-}
-:deep(.el-image-viewer__mask) {
-  z-index: 99998 !important;
-}
 
 .search-bar {
   background: #fff;
@@ -780,6 +1026,23 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
+/* 缩略图正方形容器 50x50 */
+.thumb-square {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #f5f7fa;
+}
+
+.thumb-square .el-image {
+  width: 100%;
+  height: 100%;
+}
+
 .toolbar {
   margin-bottom: 16px;
 }
@@ -790,15 +1053,27 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.upload-wrapper {
+/* 新布局样式 */
+.template-image-section {
   display: flex;
-  align-items: flex-start;
   gap: 24px;
+  margin-bottom: 16px;
+}
+
+.image-section {
+  flex: 1;
+}
+
+.section-label {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 8px;
+  font-weight: 500;
 }
 
 .main-image-area {
-  flex: 1;
-  max-width: 500px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .image-uploader {
@@ -818,8 +1093,8 @@ onMounted(() => {
 }
 
 .image-uploader:hover {
-  border-color: #667eea;
-  background: #f0f4ff;
+  border-color: #409eff;
+  background: #f0f7ff;
 }
 
 .upload-icon {
@@ -839,62 +1114,68 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e4e7ed;
+  background: #f5f7fa;
 }
 
 .image-preview img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 300px;
   object-fit: contain;
   display: block;
 }
 
-.image-overlay {
+.image-actions {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.image-preview:hover .image-overlay {
-  opacity: 1;
+  gap: 8px;
 }
 
 .thumbnail-area {
-  width: 140px;
-  flex-shrink: 0;
-}
-
-.thumbnail-title {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
-  font-weight: 500;
+  width: 200px;
 }
 
 .thumbnail-preview {
-  width: 120px;
-  height: 80px;
+  width: 200px;
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid #e4e7ed;
+  background: #f5f7fa;
 }
 
 .thumbnail-preview .el-image {
   width: 100%;
-  height: 100%;
+  height: auto;
+  display: block;
+}
+
+.thumbnail-placeholder {
+  width: 200px;
+  height: 120px;
+  border-radius: 6px;
+  border: 1px dashed #d9d9d9;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #8c939d;
+  font-size: 14px;
+}
+
+.thumbnail-placeholder .el-icon {
+  font-size: 32px;
 }
 
 .thumbnail-tip {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 12px;
   color: #909399;
 }
@@ -903,6 +1184,32 @@ onMounted(() => {
   color: #909399;
   font-size: 12px;
   line-height: 1.8;
-  margin-left: 24px;
+}
+
+/* 参考图样式 */
+.reference-images {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reference-images-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.reference-image-item {
+  position: relative;
+  display: inline-block;
+}
+
+.reference-image-item .delete-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
 }
 </style>

@@ -1,5 +1,7 @@
 <!--pages/material-upload/material-upload.wxml-->
 <view class="container">
+  <!-- 隐藏的Canvas用于生成缩略图 -->
+  <canvas type="2d" id="thumbnailCanvas" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;"></canvas>
   <!-- 分类选择区域 -->
   <view class="category-section">
     <view class="section-title">选择分类</view>

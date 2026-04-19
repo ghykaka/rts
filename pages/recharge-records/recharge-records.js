@@ -43,5 +43,16 @@ Page({
     } finally {
       this.setData({ loading: false })
     }
+  },
+
+  // 复制微信单号
+  copyTradeNo(e) {
+    const tradeNo = e.currentTarget.dataset.no
+    wx.setClipboardData({
+      data: tradeNo,
+      success: () => {
+        wx.showToast({ title: '已复制', icon: 'none' })
+      }
+    })
   }
 })

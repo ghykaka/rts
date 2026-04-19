@@ -1,7 +1,44 @@
 {
   "description": "小程序项目配置文件",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "folder",
+        "value": "admin"
+      },
+      {
+        "type": "folder",
+        "value": "admin-api"
+      },
+      {
+        "type": "folder",
+        "value": "cloudfunctions/node_modules"
+      },
+      {
+        "type": "file",
+        "value": "package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "cloudfunctions/**/package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "*.log"
+      },
+      {
+        "type": "file",
+        "value": "deploy*.log"
+      }
+    ],
     "include": []
   },
   "setting": {

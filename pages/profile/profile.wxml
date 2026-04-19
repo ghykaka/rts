@@ -1,7 +1,7 @@
 <!--pages/profile/profile.wxml-->
 <view class="container">
   <!-- 用户信息卡片 -->
-  <view class="user-card" bindtap="goLogin">
+  <view class="user-card" bindtap="{{isLogin ? '' : 'goLogin'}}">
     <view class="user-info-row">
       <image class="avatar" src="{{userInfo.avatar || '/assets/icons/default-avatar.png'}}" mode="aspectFill" />
       <view class="user-detail">
@@ -12,7 +12,7 @@
     <!-- 余额（已登录显示） -->
     <view class="balance-row" wx:if="{{isLogin}}" catchtap="goRecharge">
       <view class="balance-item">
-        <text class="balance-label">{{currentMode === 'enterprise' ? '企业余额' : '个人余额'}}</text>
+        <text class="balance-label">{{balanceLabel}}</text>
         <text class="balance-amount">¥{{currentBalance}}</text>
       </view>
       <view class="btn-recharge" catchtap="goRecharge">
@@ -63,12 +63,17 @@
 
     <!-- 其他功能 -->
     <view class="menu-card">
-      <view class="menu-item">
+      <view class="menu-item" bindtap="goRechargeRecords">
+        <image class="menu-icon" src="/assets/icons/user-cz.png" />
+        <text class="menu-text">充值记录</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item" bindtap="goToCustomerService">
         <image class="menu-icon" src="/assets/icons/user3.png" />
         <text class="menu-text">咨询客服</text>
         <text class="arrow">></text>
       </view>
-      <view class="menu-item">
+      <view class="menu-item" bindtap="goToAboutUs">
         <image class="menu-icon" src="/assets/icons/user4.png" />
         <text class="menu-text">关于我们</text>
         <text class="arrow">></text>

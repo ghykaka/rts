@@ -4,54 +4,41 @@
     <text class="title">分类管理</text>
   </view>
 
-  <scroll-view class="category-list" scroll-y catchtouchmove="preventScroll">
+  <scroll-view class="category-list" scroll-y>
     <view class="category-group" wx:for="{{categories}}" wx:key="_id">
       <!-- 一级分类 -->
-      <view
-        class="category-item top-level {{draggingId === item._id ? 'dragging' : ''}} {{dragOverId === item._id && draggingId !== item._id ? 'drag-over' : ''}}"
-        data-id="{{item._id}}"
-        data-level="top"
-        data-parent-id=""
-        data-index="{{index}}"
-        bindlongpress="handleLongPress"
-        catchtouchmove="handleTouchMove"
-        catchtouchend="handleTouchEnd"
-        catchtouchcancel="handleTouchCancel"
-      >
-        <view class="category-info">
-          <text class="drag-handle">☰</text>
-          <text class="category-name">{{item.name}}</text>
-          <view class="category-actions">
-            <text class="action-btn add" catchtap="addSubCategory" data-id="{{item._id}}" data-name="{{item.name}}">添加子分类</text>
-            <text class="action-btn edit" catchtap="editCategory" data-id="{{item._id}}" data-name="{{item.name}}" data-parent-id="">编辑</text>
-            <text class="action-btn delete" catchtap="deleteCategory" data-id="{{item._id}}" data-name="{{item.name}}">删除</text>
+      <view class="category-item top-level">
+        <text class="category-name">{{item.name}}</text>
+        <view class="category-actions">
+          <!-- 上下排序箭头 -->
+          <view class="sort-btns">
+            <text class="sort-btn up {{index === 0 ? 'disabled' : ''}}" catchtap="moveUp" data-id="{{item._id}}" data-level="1" data-index="{{index}}">↑</text>
+            <text class="sort-btn down {{index === categories.length - 1 ? 'disabled' : ''}}" catchtap="moveDown" data-id="{{item._id}}" data-level="1" data-index="{{index}}">↓</text>
           </view>
+          <text class="action-btn add" catchtap="addSubCategory" data-id="{{item._id}}" data-name="{{item.name}}">添加子分类</text>
+          <text class="action-btn edit" catchtap="editCategory" data-id="{{item._id}}" data-name="{{item.name}}" data-parent-id="">编辑</text>
+          <text class="action-btn delete" catchtap="deleteCategory" data-id="{{item._id}}" data-name="{{item.name}}">删除</text>
         </view>
       </view>
 
       <!-- 二级分类 -->
       <view class="sub-categories" wx:if="{{item.children && item.children.length > 0}}">
         <view
-          class="category-item sub-level {{draggingId === subItem._id ? 'dragging' : ''}} {{dragOverId === subItem._id && draggingId !== subItem._id ? 'drag-over' : ''}}"
+          class="category-item sub-level"
           wx:for="{{item.children}}"
           wx:for-item="subItem"
           wx:key="_id"
-          data-id="{{subItem._id}}"
-          data-level="sub"
-          data-parent-id="{{item._id}}"
-          data-index="{{index}}"
-          bindlongpress="handleLongPress"
-          catchtouchmove="handleTouchMove"
-          catchtouchend="handleTouchEnd"
-          catchtouchcancel="handleTouchCancel"
+          wx:for-index="subIndex"
         >
-          <view class="category-info">
-            <text class="drag-handle">☰</text>
-            <text class="category-name">{{subItem.name}}</text>
-            <view class="category-actions">
-              <text class="action-btn edit" catchtap="editCategory" data-id="{{subItem._id}}" data-name="{{subItem.name}}" data-parent-id="{{item._id}}">编辑</text>
-              <text class="action-btn delete" catchtap="deleteCategory" data-id="{{subItem._id}}" data-name="{{subItem.name}}">删除</text>
+          <text class="category-name">{{subItem.name}}</text>
+          <view class="category-actions">
+            <!-- 上下排序箭头 -->
+            <view class="sort-btns">
+              <text class="sort-btn up {{subIndex === 0 ? 'disabled' : ''}}" catchtap="moveUp" data-id="{{subItem._id}}" data-level="2" data-index="{{subIndex}}" data-parent-index="{{index}}">↑</text>
+              <text class="sort-btn down {{subIndex === item.children.length - 1 ? 'disabled' : ''}}" catchtap="moveDown" data-id="{{subItem._id}}" data-level="2" data-index="{{subIndex}}" data-parent-index="{{index}}">↓</text>
             </view>
+            <text class="action-btn edit" catchtap="editCategory" data-id="{{subItem._id}}" data-name="{{subItem.name}}" data-parent-id="{{item._id}}">编辑</text>
+            <text class="action-btn delete" catchtap="deleteCategory" data-id="{{subItem._id}}" data-name="{{subItem.name}}">删除</text>
           </view>
         </view>
       </view>

@@ -1,0 +1,8 @@
+{
+  "Comment": "工作流定时触发器",
+  "Timeout": 300,
+  "MemorySize": 256,
+  "Environment": {
+    "Variables": {}
+  }
+}

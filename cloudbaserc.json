@@ -7,5 +7,11 @@
       "type": "static",
       "framework": "vue"
     }
+  ],
+  "functions": [
+    {
+      "name": "workflowScheduler",
+      "timeout": 300
+    }
   ]
 }

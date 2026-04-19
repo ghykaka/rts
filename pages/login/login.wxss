@@ -28,7 +28,7 @@
 
 .btn-wrapper {
   width: 100%;
-  padding: 0 40rpx;
+  padding: 0 60rpx;
   margin-bottom: 40rpx;
   box-sizing: border-box;
 }
@@ -43,6 +43,7 @@
   font-weight: bold;
   padding: 28rpx 0;
   line-height: 1;
+  margin: 0 auto;
 }
 
 /* 禁用状态 */

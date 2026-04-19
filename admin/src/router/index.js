@@ -42,6 +42,12 @@ const routes = [
         meta: { title: '充值记录', icon: 'Money' }
       },
       {
+        path: 'order',
+        name: 'Order',
+        component: () => import('../views/order/index.vue'),
+        meta: { title: '订单管理', icon: 'List' }
+      },
+      {
         path: 'material',
         name: 'Material',
         component: () => import('../views/material/index.vue'),
@@ -101,12 +107,18 @@ const routes = [
             component: () => import('../views/homeConfig/index.vue'),
             meta: { title: '首页配置', parentTitle: '平台配置' }
           },
-          {
-            path: 'article',
-            name: 'Article',
-            component: () => import('../views/article/index.vue'),
-            meta: { title: '文章管理', parentTitle: '平台配置' }
-          }
+      {
+        path: 'article',
+        name: 'Article',
+        component: () => import('../views/article/index.vue'),
+        meta: { title: '文章管理', parentTitle: '平台配置' }
+      },
+      {
+        path: 'recharge-config',
+        name: 'RechargeConfig',
+        component: () => import('../views/recharge-config/index.vue'),
+        meta: { title: '充值金额配置', parentTitle: '平台配置' }
+      }
         ]
       }
     ]

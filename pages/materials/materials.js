@@ -4,7 +4,7 @@ const app = getApp()
 Page({
   data: {
     isLogin: false,
-    type: 'personal', // personal / enterprise
+    type: 'personal', // 固定为个人素材库
     isAdmin: false, // 是否为企业管理员（企业素材库时控制权限）
     canUpload: true, // 是否可以上传
     canManage: true, // 是否可以管理分类
@@ -16,6 +16,11 @@ Page({
     selectedSubCategoryName: '',
     selectedCategoryName: '',
     loading: false,
+    loadingMore: false, // 是否正在加载更多
+    hasMore: true, // 是否还有更多数据
+    pageSize: 20, // 每页数量
+    currentPage: 0, // 当前页码
+    totalCount: 0, // 总数量
     showCategoryModal: false, // 分类管理弹框
     newCategoryName: '', // 新分类名称
     categoryLevel: 'top', // top / sub
@@ -41,15 +46,59 @@ Page({
   },
 
   onLoad(options) {
-    const { type } = options
-    if (type) {
-      this.setData({ type })
-    }
+    console.log('=== materials.js onLoad ===')
+    // 固定为个人素材库
+    this.setData({ type: 'personal' })
+    console.log('我的素材库 - this.data.type =', this.data.type)
     this.checkLogin()
-    this.checkUserRole()
+    // 先获取完整用户信息（包含企业信息），再检查角色
+    this.loadUserInfoAndCheckRole()
     this.loadCategories()
     this.loadAllSubCategories() // 初始加载所有二级分类
+    // 不设置 selectedCategory，默认显示所有分类
+    this.setData({
+      selectedCategory: '',
+      selectedSubCategory: '',
+      selectedSubCategoryName: '',
+      selectedCategoryName: ''
+    })
     this.loadMaterials()
+  },
+
+  // 获取完整用户信息并检查角色
+  async loadUserInfoAndCheckRole() {
+    const userId = wx.getStorageSync('userId')
+    if (!userId) return
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getUserInfo',
+        data: { userId }
+      })
+
+      if (res.result && res.result.success) {
+        const userInfo = res.result.data
+        // 更新本地存储的用户信息
+        wx.setStorageSync('userInfo', userInfo)
+        // 检查角色权限
+        this.checkUserRole()
+      }
+    } catch (err) {
+      console.error('loadUserInfoAndCheckRole error:', err)
+      // 如果获取失败，仍使用本地缓存的用户信息检查角色
+      this.checkUserRole()
+    }
+  },
+
+  // 上拉加载更多
+  onReachBottom() {
+    console.log('触发上拉加载更多')
+    const { hasMore, loading } = this.data
+    if (!hasMore || loading) {
+      console.log('无需加载更多: hasMore=', hasMore, 'loading=', loading)
+      return
+    }
+    this.loadMoreMaterials()
   },
 
   // 检查登录状态
@@ -72,7 +121,20 @@ Page({
 
     if (this.data.type === 'enterprise') {
       // 企业素材库：只有管理员可以上传和管理分类
-      const isAdmin = userInfo.role === 'admin'
+      // 判断逻辑：1. userInfo.role === 'admin' 或 2. 用户是该企业的 admin_user_id
+      let isAdmin = userInfo.role === 'admin'
+      
+      // 如果没有 role 字段，检查是否是企业的 admin_user_id
+      if (!isAdmin && userInfo.enterprise_id && userInfo.admin_user_id) {
+        // enterprise_id 和 admin_user_id 同时存在时，该用户是管理员
+        isAdmin = (userInfo._id || userInfo.userId) === userInfo.admin_user_id
+      }
+      
+      // 兼容：如果用户有 enterprise_id 但没有 role，默认允许（老数据兼容）
+      if (!isAdmin && userInfo.enterprise_id && !userInfo.role) {
+        isAdmin = true
+      }
+      
       this.setData({
         isAdmin: isAdmin,
         canUpload: isAdmin,
@@ -133,124 +195,251 @@ Page({
 
   async loadCategories() {
     try {
-      const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
+      const { type } = this.data
 
-      const res = await db.collection('material_categories')
-        .where({
-          owner_type: this.data.type,
-          owner_id: userId
-        })
-        .orderBy('sort_order', 'asc')
-        .orderBy('create_time', 'asc')
-        .get()
-
-      const allCategories = res.data || []
-
-      // 分离一级和二级分类
-      const topCats = allCategories.filter(cat => !cat.parent_id)
-      const subCats = allCategories.filter(cat => cat.parent_id)
-
-      this.setData({
-        categories: [{ _id: '', name: '全部' }, ...topCats],
-        topCategories: topCats
+      // 使用云函数查询
+      const res = await wx.cloud.callFunction({
+        name: 'getAppCategories',
+        data: {
+          action: 'userMaterialCategories',
+          userId: userId,
+          userType: type
+        }
       })
 
-      // 如果之前选中有了一级分类，重新加载其下的二级分类
-      if (this.data.selectedCategory) {
-        await this.loadSubCategories(this.data.selectedCategory)
-      }
+      const allCategories = res.result?.data || []
+      console.log('loadCategories 结果:', allCategories.length, '条')
+      console.log('全部分类:', JSON.stringify(allCategories))
+
+      // 一级分类：level=1 且 parent_id 为 null、空字符串、"null"或不存在
+      const topCats = allCategories
+        .filter(cat => {
+          const isLevel1 = cat.level === 1
+          const isNoParent = !cat.parent_id || cat.parent_id === null || cat.parent_id === '' || cat.parent_id === 'null'
+          console.log('分类:', cat.name, 'level:', cat.level, 'parent_id:', cat.parent_id, 'isLevel1:', isLevel1, 'isNoParent:', isNoParent)
+          return isLevel1 && isNoParent
+        })
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+
+      console.log('筛选后一级分类:', topCats.length, '条')
+
+      this.setData({
+        categories: topCats,
+        topCategories: topCats
+      })
     } catch (err) {
       console.error('loadCategories error:', err)
       this.setData({
-        categories: [{ _id: '', name: '全部' }],
+        categories: [],
         topCategories: []
       })
     }
   },
 
+  // 首次加载素材（重置分页）
   async loadMaterials() {
-    this.setData({ loading: true })
+    this.setData({ 
+      loading: true,
+      currentPage: 0,
+      materials: [],
+      groupedMaterials: [],
+      hasMore: true
+    }, () => {
+      // 确保在 setData 完成后执行查询，此时 this.data 是最新的
+      this._loadMaterialsCore(false)
+    })
+  },
 
+  // 加载更多素材（分页）
+  async loadMoreMaterials() {
+    const { hasMore, loadingMore, currentPage } = this.data
+    if (!hasMore || loadingMore) return
+    
+    this.setData({ loadingMore: true })
+    await this._loadMaterialsCore(true)
+  },
+
+  // 素材查询核心逻辑
+  async _loadMaterialsCore(isLoadMore = false) {
     try {
       const db = wx.cloud.database()
+      const _ = db.command
       const userId = wx.getStorageSync('userId')
-      const { selectedCategory, selectedSubCategory, subCategories } = this.data
+      const { selectedCategory, selectedSubCategory, subCategories, type, pageSize, currentPage } = this.data
 
-      let whereCondition = {
-        owner_type: this.data.type,
-        owner_id: userId
+      // 构建查询条件（与后台保持一致：user_id, user_type, category1_id, category2_id）
+      let whereCondition = { 
+        user_id: userId,
+        user_type: 'personal'  // 固定查询个人素材
       }
 
-      // 根据选择状态设置查询条件
-      if (selectedSubCategory === 'all' || (!selectedCategory && !selectedSubCategory)) {
-        // 全部状态：查询所有素材
+      // 根据选择状态设置查询条件（使用后台字段 category1_id, category2_id）
+      if (!selectedSubCategory) {
+        // 空字符串表示"全部"：查询所有素材
       } else if (selectedCategory && selectedSubCategory) {
         // 选中了一级和二级分类：查询该二级分类下的素材
-        whereCondition.category_id = selectedSubCategory
+        whereCondition.category2_id = selectedSubCategory
       } else if (selectedCategory) {
         // 选中了一级分类但没有二级分类：查询该一级分类下所有二级分类的素材
         if (subCategories.length > 0) {
-          whereCondition.category_id = db.command.in([
-            ...subCategories.map(cat => cat._id),
-            ''
-          ])
+          const subCategoryIds = subCategories.map(cat => cat._id)
+          whereCondition.category2_id = _.in(subCategoryIds)
         }
       }
 
       console.log('查询条件:', whereCondition)
+      console.log('selectedCategory:', selectedCategory, 'selectedSubCategory:', selectedSubCategory)
+      console.log('subCategories.length:', subCategories.length)
 
-      const res = await db.collection('materials')
+      // 构建分页查询（按创建时间升序，最早的在前）
+      let query = db.collection('materials')
         .where(whereCondition)
-        .orderBy('create_time', 'desc')
-        .get()
+        .orderBy('create_time', 'asc')
+      
+      if (isLoadMore) {
+        // 加载更多：跳过已加载的数据
+        query = query.skip((currentPage + 1) * pageSize).limit(pageSize)
+      } else {
+        // 首次加载
+        query = query.limit(pageSize)
+      }
+      
+      const res = await query.get()
 
-      const materials = res.data || []
-      console.log('查询到的素材数量:', materials.length)
+      const newMaterials = res.data || []
+      console.log('查询到的素材数量:', newMaterials.length, isLoadMore ? '(加载更多)' : '(首次加载)')
+      
+      // 如果是加载更多，判断是否还有更多数据
+      let hasMore = true
+      if (newMaterials.length < pageSize) {
+        hasMore = false
+      }
+      
+      console.log('subCategories数量:', subCategories.length)
+      console.log('subCategories数据:', subCategories)
 
-      // 获取所有云存储fileID
-      const fileList = materials
-        .filter(item => item.url && !item.url.startsWith('http'))
-        .map(item => item.url)
+      // 获取所有云存储fileID（包括 url 和 thumbnail_url）
+      const allFileIds = []
+      const fileIdIndexMap = new Map() // 用于去重和记录索引
+      
+      newMaterials.forEach(item => {
+        // 添加 url
+        if (item.url && !item.url.startsWith('http') && !fileIdIndexMap.has(item.url)) {
+          fileIdIndexMap.set(item.url, allFileIds.length)
+          allFileIds.push(item.url)
+        }
+        // 添加 thumbnail_url（如果与 url 不同）
+        if (item.thumbnail_url && !item.thumbnail_url.startsWith('http') && !fileIdIndexMap.has(item.thumbnail_url)) {
+          fileIdIndexMap.set(item.thumbnail_url, allFileIds.length)
+          allFileIds.push(item.thumbnail_url)
+        }
+      })
 
       // 批量获取临时URL
       let tempURLs = []
-      if (fileList.length > 0) {
-        tempURLs = await this.getTempFileURLs(fileList)
+      if (allFileIds.length > 0) {
+        tempURLs = await this.getTempFileURLs(allFileIds)
       }
 
       // 创建fileID到临时URL的映射
       const urlMap = new Map()
-      fileList.forEach((fileID, index) => {
+      allFileIds.forEach((fileID, index) => {
         if (tempURLs[index]) {
           urlMap.set(fileID, tempURLs[index])
         }
       })
 
-      // 处理素材URL
-      const processedMaterials = materials.map(item => {
-        if (item.url && !item.url.startsWith('http')) {
-          return {
-            ...item,
-            url: urlMap.get(item.url) || item.url
-          }
+      // 处理素材URL（与后台字段保持一致）
+      const processedMaterials = newMaterials.map(item => {
+        let url = item.url || ''
+        let thumbnailUrl = item.thumbnail_url || item.url || ''
+
+        // 处理云存储fileID转临时URL
+        if (url && !url.startsWith('http')) {
+          url = urlMap.get(url) || url
         }
-        return item
+        if (thumbnailUrl && !thumbnailUrl.startsWith('http')) {
+          thumbnailUrl = urlMap.get(thumbnailUrl) || thumbnailUrl
+        }
+
+        // 计算显示名称：使用后台的 title 字段
+        let displayName = item.title || item.name || ''
+        if (!displayName && url) {
+          // 从 URL 中提取文件名作为备选
+          const urlParts = url.split('/')
+          const filename = urlParts[urlParts.length - 1] || ''
+          // 去掉文件扩展名
+          displayName = filename.replace(/\.[^/.]+$/, '') || '未命名素材'
+        }
+        if (!displayName) {
+          displayName = '未命名素材'
+        }
+
+        return {
+          ...item,
+          url: url,
+          thumbnail_url: thumbnailUrl,
+          displayName: displayName
+        }
       })
 
-      // 按二级分类分组显示
+      // 按二级分类分组显示（与后台字段保持一致：category2_id）
+      const getCategoryId = (m) => m.category2_id || m.category_id || ''
+      
       let grouped = []
-      if (selectedSubCategory === 'all' || (!selectedCategory && !selectedSubCategory)) {
-        // 全部状态：按所有二级分类分组
+      
+      // 选中具体二级分类：只显示该分类的素材
+      if (selectedSubCategory) {
+        const currentCat = subCategories.find(cat => cat._id === selectedSubCategory)
+        grouped = [{
+          categoryId: selectedSubCategory,
+          categoryName: currentCat ? currentCat.name : '当前分类',
+          materials: processedMaterials
+        }]
+      } 
+      // 选中一级分类：显示该分类下所有二级分类
+      else if (selectedCategory) {
         if (subCategories.length > 0) {
-          grouped = subCategories.map(category => ({
+          // 按 order 排序后分组
+          const sortedSubCategories = [...subCategories].sort((a, b) => (a.order || 0) - (b.order || 0))
+          grouped = sortedSubCategories.map(category => ({
             categoryId: category._id,
             categoryName: category.name,
-            materials: processedMaterials.filter(m => m.category_id === category._id)
+            materials: processedMaterials.filter(m => getCategoryId(m) === category._id)
           })).filter(group => group.materials.length > 0)
 
           // 添加未分类的素材
-          const ungroupedMaterials = processedMaterials.filter(m => !m.category_id || m.category_id === '')
+          const ungroupedMaterials = processedMaterials.filter(m => !getCategoryId(m))
+          if (ungroupedMaterials.length > 0) {
+            grouped.push({
+              categoryId: '',
+              categoryName: '未分类',
+              materials: ungroupedMaterials
+            })
+          }
+        } else {
+          const catName = this.data.selectedCategoryName || this.data.categories.find(c => c._id === selectedCategory)?.name || '全部素材'
+          grouped = [{
+            categoryId: '',
+            categoryName: catName,
+            materials: processedMaterials
+          }]
+        }
+      }
+      // 默认状态（未选中任何分类）：按所有二级分类分组，按 order 排序
+      else {
+        if (subCategories.length > 0) {
+          // 按 order 排序后分组
+          const sortedSubCategories = [...subCategories].sort((a, b) => (a.order || 0) - (b.order || 0))
+          grouped = sortedSubCategories.map(category => ({
+            categoryId: category._id,
+            categoryName: category.name,
+            materials: processedMaterials.filter(m => getCategoryId(m) === category._id)
+          })).filter(group => group.materials.length > 0)
+
+          // 添加未分类的素材
+          const ungroupedMaterials = processedMaterials.filter(m => !getCategoryId(m))
           if (ungroupedMaterials.length > 0) {
             grouped.push({
               categoryId: '',
@@ -265,114 +454,109 @@ Page({
             materials: processedMaterials
           }]
         }
-      } else if (selectedSubCategory) {
-        // 选中具体二级分类：只显示该分类的素材
-        const currentCat = subCategories.find(cat => cat._id === selectedSubCategory)
-        grouped = [{
-          categoryId: selectedSubCategory,
-          categoryName: currentCat ? currentCat.name : '当前分类',
-          materials: processedMaterials
-        }]
-      } else if (selectedCategory) {
-        // 选中一级分类：显示该分类下所有二级分类
-        if (subCategories.length > 0) {
-          grouped = subCategories.map(category => ({
-            categoryId: category._id,
-            categoryName: category.name,
-            materials: processedMaterials.filter(m => m.category_id === category._id)
-          })).filter(group => group.materials.length > 0)
+      }
+      
+      console.log('分组后的数据:', grouped)
 
-          // 添加未分类的素材
-          const ungroupedMaterials = processedMaterials.filter(m => !m.category_id || m.category_id === '')
-          if (ungroupedMaterials.length > 0) {
-            grouped.push({
-              categoryId: '',
-              categoryName: '未分类',
-              materials: ungroupedMaterials
-            })
-          }
-        } else {
-          grouped = [{
-            categoryId: '',
-            categoryName: selectedCategoryName || '全部素材',
-            materials: processedMaterials
-          }]
-        }
+      // 更新数据
+      let updateData = {
+        groupedMaterials: grouped,
+        hasMore: hasMore,
+        currentPage: isLoadMore ? currentPage + 1 : 0,
+        loading: false,
+        loadingMore: false
       }
 
-      this.setData({
-        materials: processedMaterials,
-        groupedMaterials: grouped
+      if (isLoadMore) {
+        // 加载更多：合并数据
+        updateData.materials = [...this.data.materials, ...processedMaterials]
+      } else {
+        // 首次加载
+        updateData.materials = processedMaterials
+      }
+
+      this.setData(updateData)
+      
+      console.log('分页信息:', {
+        currentPage: this.data.currentPage,
+        hasMore: this.data.hasMore,
+        totalMaterials: this.data.materials.length
       })
     } catch (err) {
       console.error('loadMaterials error:', err)
       this.setData({
         materials: [],
-        groupedMaterials: []
+        groupedMaterials: [],
+        hasMore: false,
+        loading: false,
+        loadingMore: false
       })
-    } finally {
-      this.setData({ loading: false })
     }
   },
 
   async selectCategory(e) {
-    const { id, name } = e.currentTarget.dataset
+    // 支持 picker 和点击两种方式
+    const id = e.detail?.value || e.currentTarget?.dataset?.id
+    // 如果是从 picker 选择，需要从 categories 中查找名称
+    let name = e.currentTarget?.dataset?.name
+    if (!name && id && this.data.categories) {
+      const cat = this.data.categories.find(c => c._id === id)
+      if (cat) name = cat.name
+    }
+    
+    // 先重置二级分类和子分类选择
     this.setData({
-      selectedCategory: id,
+      selectedCategory: id || '',
       selectedSubCategory: '',
       selectedSubCategoryName: '',
-      selectedCategoryName: name,
+      selectedCategoryName: name || '',
       sideScrollTop: 0,
-      materialScrollTop: 0
+      materialScrollTop: 0,
+      subCategories: [] // 先清空，避免显示旧数据
     })
 
     if (id) {
       // 加载该一级分类下的二级分类，等待加载完成
-      await this.loadSubCategories(id)
+      const subCategories = await this.loadSubCategories(id)
+      // 使用回调确保 subCategories 更新后再加载素材
+      this.setData({ subCategories: subCategories }, () => {
+        this.loadMaterials()
+      })
     } else {
       // 全部状态：加载所有一级分类下的二级分类
       await this.loadAllSubCategories()
+      this.loadMaterials()
     }
-
-    // 等二级分类加载完成后再加载素材
-    this.loadMaterials()
   },
 
-  // 选择全部分类
-  selectAllCategory() {
-    const { categories } = this.data
-
-    this.setData({
-      selectedSubCategory: 'all',
-      selectedSubCategoryName: '全部',
-      sideScrollTop: 0,
-      materialScrollTop: 0
-    })
-
-    this.loadMaterials()
-  },
-
-  // 加载二级分类
+  // 加载二级分类（使用云函数避免 _openid 限制）
   async loadSubCategories(parentId) {
     try {
-      const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
+      const { type } = this.data
 
-      const res = await db.collection('material_categories')
-        .where({
-          owner_type: this.data.type,
-          owner_id: userId,
-          parent_id: parentId
-        })
-        .orderBy('sort_order', 'asc')
-        .orderBy('create_time', 'asc')
-        .get()
+      // 使用云函数查询
+      const res = await wx.cloud.callFunction({
+        name: 'getAppCategories',
+        data: {
+          action: 'userMaterialCategories',
+          userId: userId,
+          userType: type
+        }
+      })
 
-      this.setData({ subCategories: res.data || [] })
-      return res.data || []
+      const allCategories = res.result?.data || []
+      
+      // 筛选出该父分类下的二级分类
+      const subCategories = allCategories.filter(cat => cat.parent_id === parentId)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+
+      // 返回新的 subCategories，供调用方使用
+      this._currentSubCategories = subCategories
+      return subCategories
     } catch (err) {
       console.error('loadSubCategories error:', err)
-      this.setData({ subCategories: [] })
+      this._currentSubCategories = []
       return []
     }
   },
@@ -380,43 +564,36 @@ Page({
   // 加载所有二级分类（用于全部状态），按一级分类的顺序排列
   async loadAllSubCategories() {
     try {
-      const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
+      const { type } = this.data
 
-      // 先获取所有一级分类（已按 sort_order 排序）
-      const topRes = await db.collection('material_categories')
-        .where({
-          owner_type: this.data.type,
-          owner_id: userId,
-          parent_id: null
-        })
-        .orderBy('sort_order', 'asc')
-        .get()
+      console.log('loadAllSubCategories, userId:', userId, 'type:', type)
 
-      const topCategories = topRes.data || []
-      const orderedSubCategories = []
-
-      // 按一级分类的顺序，为每个一级分类获取其二级分类
-      for (const topCat of topCategories) {
-        const subRes = await db.collection('material_categories')
-          .where({
-            owner_type: this.data.type,
-            owner_id: userId,
-            parent_id: topCat._id
-          })
-          .orderBy('sort_order', 'asc')
-          .orderBy('create_time', 'asc')
-          .get()
-
-        if (subRes.data && subRes.data.length > 0) {
-          orderedSubCategories.push(...subRes.data)
+      // 使用云函数查询（不受 _openid 限制）
+      const res = await wx.cloud.callFunction({
+        name: 'getAppCategories',
+        data: {
+          action: 'userMaterialCategories',
+          userId: userId,
+          userType: type
         }
-      }
+      })
 
-      this.setData({ subCategories: orderedSubCategories })
+      const allCategories = res.result?.data || []
+      console.log('分类查询结果:', allCategories.length, '条', allCategories)
+
+      // 二级分类 = level=2 或有 parent_id
+      const subCategories = allCategories.filter(cat => cat.level === 2 || cat.parent_id)
+
+      console.log('二级分类:', subCategories)
+      this._currentSubCategories = subCategories
+      this.setData({ subCategories: subCategories })
+      return subCategories
     } catch (err) {
       console.error('loadAllSubCategories error:', err)
       this.setData({ subCategories: [] })
+      this._currentSubCategories = []
+      return []
     }
   },
 
@@ -447,10 +624,10 @@ Page({
       selectedSubCategoryName: name,
       sideScrollTop: sideScrollTop,
       materialScrollTop: materialScrollTop
+    }, () => {
+      // 等 setData 完成后加载素材
+      this.loadMaterials()
     })
-
-    // 加载该二级分类下的素材
-    this.loadMaterials()
   },
 
   // 素材列表滚动监听
@@ -499,11 +676,21 @@ Page({
     })
   },
 
+  // 跳转批量抠图（文章页面）
+  goToBatchCut() {
+    const articleId = '391fc5be69dde943003b0c9e63433847'
+    wx.navigateTo({
+      url: `/pages/article-detail/article-detail?id=${articleId}`
+    })
+  },
+
   // 跳转上传页面
   goToUpload() {
-    wx.navigateTo({
-      url: `/pages/material-upload/material-upload?type=${this.data.type}`
-    })
+    console.log('=== goToUpload ===')
+    console.log('当前 this.data.type =', this.data.type)
+    const url = `/pages/material-upload/material-upload?type=${this.data.type}`
+    console.log('跳转 URL:', url)
+    wx.navigateTo({ url })
   },
 
   // 跳转上传页面并带入当前分类
@@ -531,20 +718,23 @@ Page({
       return
     }
 
-    // 只预览图片，不显示操作菜单
+    // 预览原图（大图）
+    const previewUrl = item.url
     wx.previewImage({
-      current: item.url,
-      urls: [item.url]
+      current: previewUrl,
+      urls: [previewUrl]
     })
   },
 
   // 编辑素材名称
   editMaterialName(e) {
     const item = e.currentTarget?.dataset?.item || e
+    // 优先取 name，其次取 title，最后取 displayName
+    const currentName = item.name || item.title || item.displayName || ''
     this.setData({
       showEditMaterialModal: true,
       editingMaterial: item,
-      editMaterialName: item.name || ''
+      editMaterialName: currentName
     })
   },
 
@@ -583,7 +773,7 @@ Page({
     this.setData({ editMaterialName: '' })
   },
 
-  // 保存素材名称
+  // 保存素材名称（通过云函数更新）
   async saveMaterialName() {
     const { editingMaterial, editMaterialName } = this.data
 
@@ -595,19 +785,23 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
-      const db = wx.cloud.database()
-
-      await db.collection('materials').doc(editingMaterial._id).update({
+      const res = await wx.cloud.callFunction({
+        name: 'adminMaterial',
         data: {
-          name: editMaterialName.trim(),
-          update_time: db.serverDate()
+          action: 'updateName',
+          materialId: editingMaterial._id,
+          data: { name: editMaterialName.trim() }
         }
       })
 
       wx.hideLoading()
-      wx.showToast({ title: '保存成功', icon: 'success' })
-      this.hideEditMaterialModal()
-      this.loadMaterials()
+      if (res.result && res.result.success) {
+        wx.showToast({ title: '保存成功', icon: 'success' })
+        this.hideEditMaterialModal()
+        this.loadMaterials()
+      } else {
+        wx.showToast({ title: res.result?.error || '保存失败', icon: 'none' })
+      }
     } catch (err) {
       console.error('saveMaterialName error:', err)
       wx.hideLoading()
@@ -615,7 +809,7 @@ Page({
     }
   },
 
-  // 删除素材
+  // 删除素材（通过云函数删除）
   async deleteMaterial(e) {
     const { id } = e.currentTarget.dataset
 
@@ -627,14 +821,21 @@ Page({
           wx.showLoading({ title: '删除中...' })
 
           try {
-            const db = wx.cloud.database()
-
-            // 删除数据库记录
-            await db.collection('materials').doc(id).remove()
+            const result = await wx.cloud.callFunction({
+              name: 'adminMaterial',
+              data: {
+                action: 'delete',
+                materialId: id
+              }
+            })
 
             wx.hideLoading()
-            wx.showToast({ title: '删除成功', icon: 'success' })
-            this.loadMaterials()
+            if (result.result && result.result.success) {
+              wx.showToast({ title: '删除成功', icon: 'success' })
+              this.loadMaterials()
+            } else {
+              wx.showToast({ title: result.result?.error || '删除失败', icon: 'none' })
+            }
           } catch (err) {
             console.error('deleteMaterial error:', err)
             wx.hideLoading()
@@ -674,20 +875,23 @@ Page({
     if (!item) return
 
     // 显示修改分类弹框，先设置一级分类为"全部"
+    // 兼容 category_id 和 category2_id
+    const currentCategoryId = item.category_id || item.category2_id || ''
+    
     this.setData({
       showChangeCategoryModal: true,
       changingMaterial: item,
       pickerTopCategories: this.data.topCategories,
       pickerSubCategories: [],
       pickerSelectedTopCategory: '',
-      pickerSelectedSubCategory: item.category_id || '',
+      pickerSelectedSubCategory: currentCategoryId,
       pickerSelectedTopCategoryName: '',
       pickerSelectedSubCategoryName: ''
     })
 
     // 如果素材有分类，查找其一级分类
-    if (item.category_id) {
-      await this.loadCategoriesForMaterial(item.category_id)
+    if (currentCategoryId) {
+      await this.loadCategoriesForMaterial(currentCategoryId)
     }
   },
 
@@ -699,8 +903,13 @@ Page({
       const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
 
-      // 查询该二级分类的信息
-      const catRes = await db.collection('material_categories').doc(subCategoryId).get()
+      // 查询该二级分类的信息（先查 user_material_categories，再查 material_categories）
+      let catRes = await db.collection('user_material_categories').doc(subCategoryId).get()
+      
+      // 如果没找到，再查 material_categories（小程序的分类）
+      if (!catRes.data || !catRes.data.parent_id) {
+        catRes = await db.collection('material_categories').doc(subCategoryId).get()
+      }
 
       if (catRes.data && catRes.data.parent_id) {
         // 找到了父分类（一级分类）
@@ -776,24 +985,30 @@ Page({
     }
   },
 
-  // 加载二级分类（用于修改分类弹框）
+  // 加载二级分类（用于修改分类弹框，使用云函数避免 _openid 限制）
   async loadSubCategoriesForPicker(parentId) {
     try {
-      const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
+      const { type } = this.data
 
-      const res = await db.collection('material_categories')
-        .where({
-          owner_type: this.data.type,
-          owner_id: userId,
-          parent_id: parentId
-        })
-        .orderBy('sort_order', 'asc')
-        .orderBy('create_time', 'asc')
-        .get()
+      // 使用云函数查询
+      const res = await wx.cloud.callFunction({
+        name: 'getAppCategories',
+        data: {
+          action: 'userMaterialCategories',
+          userId: userId,
+          userType: type
+        }
+      })
 
-      this.setData({ pickerSubCategories: res.data || [] })
-      return res.data || []
+      const allCategories = res.result?.data || []
+      
+      // 筛选出该父分类下的二级分类
+      const pickerSubCategories = allCategories.filter(cat => cat.parent_id === parentId)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+
+      this.setData({ pickerSubCategories: pickerSubCategories })
+      return pickerSubCategories
     } catch (err) {
       console.error('loadSubCategoriesForPicker error:', err)
       this.setData({ pickerSubCategories: [] })
@@ -844,28 +1059,33 @@ Page({
       targetCategoryId = pickerSelectedTopCategory
     }
 
-    // 更新素材分类
-    await this.updateMaterialCategory(changingMaterial, targetCategoryId)
+    // 更新素材分类（与后台字段保持一致：category1_id, category2_id）
+    await this.updateMaterialCategory(changingMaterial, pickerSelectedTopCategory, targetCategoryId)
     this.hideChangeCategoryModal()
   },
 
-  // 更新素材分类
-  async updateMaterialCategory(item, categoryId) {
+  // 更新素材分类（通过云函数更新）
+  async updateMaterialCategory(item, category1Id, category2Id) {
     wx.showLoading({ title: '更新中...' })
 
     try {
-      const db = wx.cloud.database()
-
-      await db.collection('materials').doc(item._id).update({
+      const res = await wx.cloud.callFunction({
+        name: 'adminMaterial',
         data: {
-          category_id: categoryId,
-          update_time: db.serverDate()
+          action: 'updateCategory',
+          materialId: item._id,
+          category1Id: category1Id,
+          category2Id: category2Id
         }
       })
 
       wx.hideLoading()
-      wx.showToast({ title: '更新成功', icon: 'success' })
-      this.loadMaterials()
+      if (res.result && res.result.success) {
+        wx.showToast({ title: '更新成功', icon: 'success' })
+        this.loadMaterials()
+      } else {
+        wx.showToast({ title: res.result?.error || '更新失败', icon: 'none' })
+      }
     } catch (err) {
       console.error('updateMaterialCategory error:', err)
       wx.hideLoading()
@@ -953,6 +1173,7 @@ Page({
     try {
       const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
+      const type = this.data.type
 
       if (categoryLevel === 'top') {
         // 添加一级分类：将其他一级分类的 sort_order + 1，新分类 sort_order = 0
@@ -963,26 +1184,30 @@ Page({
             data: { sort_order: index + 1 }
           })
         })
-        // 添加新分类，sort_order = 0
+        // 添加新分类，sort_order = 0，同时设置兼容字段
         batch.add(db.collection('material_categories'), {
           data: {
             name: newCategoryName.trim(),
             parent_id: null,
-            owner_type: this.data.type,
+            owner_type: type,
             owner_id: userId,
+            user_type: type,
+            user_id: userId,
             sort_order: 0,
             create_time: db.serverDate()
           }
         })
         await batch.commit()
       } else {
-        // 添加二级分类
+        // 添加二级分类，同时设置兼容字段
         await db.collection('material_categories').add({
           data: {
             name: newCategoryName.trim(),
             parent_id: parentCategory,
-            owner_type: this.data.type,
+            owner_type: type,
             owner_id: userId,
+            user_type: type,
+            user_id: userId,
             sort_order: 0,
             create_time: db.serverDate()
           }
@@ -1013,11 +1238,11 @@ Page({
           try {
             const db = wx.cloud.database()
 
-            // 更新素材的 category_id 为空
+            // 更新素材的 category2_id 为空（与后台字段保持一致）
             await db.collection('materials')
-              .where({ category_id: id })
+              .where({ category2_id: id })
               .update({
-                data: { category_id: '' }
+                data: { category2_id: '' }
               })
 
             // 删除分类

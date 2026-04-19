@@ -13,7 +13,7 @@
       bindgetphonenumber="getPhoneNumber"
       disabled="{{!agreeProtocol}}"
     >
-      微信手机号一键登录
+      手机号快捷登录
     </button>
   </view>  
 

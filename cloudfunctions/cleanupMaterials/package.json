@@ -1,0 +1,8 @@
+{
+  "name": "cleanupMaterials",
+  "version": "1.0.0",
+  "description": "清理旧格式素材数据",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

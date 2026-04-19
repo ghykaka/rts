@@ -51,6 +51,7 @@ exports.main = async (event, context) => {
       userData.industry = enterpriseInfo.industry
       userData.enterprise_id = enterpriseInfo._id
       userData.enterprise_balance = enterpriseInfo.balance || 0  // 企业余额
+      userData.admin_user_id = enterpriseInfo.admin_user_id || ''  // 企业管理员ID
     }
 
     return {

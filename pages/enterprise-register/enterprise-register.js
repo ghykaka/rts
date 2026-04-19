@@ -4,9 +4,41 @@ Page({
     companyName: '',
     companyShortName: '',
     industry: '',
-    industries: ['互联网', '电子商务', '金融', '教育', '医疗', '房地产', '制造业', '零售', '其他'],
+    industries: [],  // 从数据库加载
     showIndustryPicker: false,
     selectedIndustryIndex: -1
+  },
+
+  onLoad() {
+    this.loadIndustries()
+  },
+
+  // 加载行业列表（从后台维护的 industries 表）
+  async loadIndustries() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'adminproxy',
+        data: { action: 'getIndustries' }
+      })
+      
+      const result = res.result
+      if (result && result.success && result.list && result.list.length > 0) {
+        this.setData({
+          industries: result.list.map(item => item.name)
+        })
+      } else {
+        // 如果没有数据，使用默认列表
+        this.setData({
+          industries: ['互联网', '电子商务', '金融', '教育', '医疗', '房地产', '制造业', '零售', '其他']
+        })
+      }
+    } catch (err) {
+      console.error('loadIndustries error:', err)
+      // 出错时使用默认列表
+      this.setData({
+        industries: ['互联网', '电子商务', '金融', '教育', '医疗', '房地产', '制造业', '零售', '其他']
+      })
+    }
   },
 
   // 输入企业名称

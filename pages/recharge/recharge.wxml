@@ -9,18 +9,28 @@
     <text class="label">选择金额</text>
     <view class="amount-grid">
       <view 
-        class="amount-item {{selectedAmount === item ? 'active' : ''}}"
-        wx:for="{{amounts}}"
-        wx:key="*this"
+        class="amount-item {{selectedIndex === index ? 'active' : ''}}"
+        wx:for="{{rechargeConfigs}}"
+        wx:key="_id"
         bindtap="selectAmount"
-        data-amount="{{item}}"
+        data-index="{{index}}"
+        data-id="{{item._id}}"
+        data-amount="{{item.amount}}"
       >
-        <text class="amount">¥{{item}}</text>
+        <view class="amount-top">
+          <text class="amount">¥{{item.amount}}</text>
+          <text class="bonus-tag" wx:if="{{item.bonus > 0}}">送{{item.bonus}}</text>
+        </view>
+        <text class="amount-tip" wx:if="{{item.bonus > 0}}">到账{{item.amount + item.bonus}}元</text>
       </view>
     </view>
   </view>
 
-  <view class="btn-recharge" bindtap="recharge" loading="{{loading}}">
-    微信支付 ¥{{selectedAmount}}
+  <view 
+    class="btn-recharge {{paying ? 'paying' : ''}}" 
+    bindtap="recharge"
+  >
+    <text wx:if="{{paying}}">支付中...</text>
+    <text wx:else>微信支付 ¥{{selectedAmount}}</text>
   </view>
 </view>

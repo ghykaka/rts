@@ -1,112 +1,296 @@
 <!--pages/generate/generate.wxml-->
 <view class="container">
-  <!-- 顶部信息展示 -->
-  <view class="header-info">
-    <view class="info-row">
-      <image class="product-image" src="{{productImage}}" mode="aspectFill" />
-      <view class="plus-icon">+</view>
-      <image class="template-cover" src="{{templateCover}}" mode="aspectFill" />
-    </view>
-    <view class="info-text">
-      <text class="product-name">{{productName}}</text>
-      <text class="template-style">{{templateName}}</text>
-      <text class="template-desc" wx:if="{{templateDesc}}">{{templateDesc}}</text>
-    </view>
+  <!-- 功能主图（大图/头图）- 置顶显示 -->
+  <view class="main-image-section" wx:if="{{mainImage}}">
+    <image class="main-image" src="{{mainImage}}" mode="widthFix" />
   </view>
 
-  <!-- 作品参考 -->
-  <view class="section">
-    <view class="section-title">作品参考</view>
-    <scroll-view class="reference-scroll" scroll-x>
+  <!-- 参考样图 -->
+  <view class="section" wx:if="{{referenceImages.length > 0}}">
+    <view class="section-title">参考样图</view>
+    <scroll-view class="reference-scroll" scroll-x enhanced show-scrollbar="{{false}}">
       <view class="reference-list">
-        <image
-          class="reference-item"
-          src="{{templateCover}}"
-          mode="aspectFill"
-        />
+        <view
+          wx:for="{{referenceImages}}"
+          wx:key="index"
+          class="reference-item-wrap"
+          bindtap="previewReferenceImage"
+          data-url="{{item}}"
+        >
+          <image
+            class="reference-item"
+            src="{{item}}"
+            mode="aspectFill"
+          />
+        </view>
       </view>
     </scroll-view>
   </view>
 
-  <!-- 图片尺寸选择 -->
-  <view class="section">
-    <view class="section-title">图片尺寸</view>
-    <view class="size-options">
-      <view
-        class="size-item {{selectedSize === '9:16' ? 'active' : ''}}"
-        bindtap="selectSize"
-        data-size="9:16"
-      >
-        <view class="size-preview" style="width: 40rpx; height: 72rpx;"></view>
-        <text class="size-label">9:16</text>
+  <!-- 产品+模板区域 - 只有配置了step1或step2流程时才显示 -->
+  <view class="section product-template-section" wx:if="{{hasStep1OrStep2}}">
+    <view class="section-title">{{hasStep2 ? '产品与模板' : '模板'}}</view>
+    <view class="product-template-content">
+      <!-- 左侧：产品+模板图片 -->
+      <view class="image-row">
+        <!-- step2 时显示产品图片和加号 -->
+        <block wx:if="{{hasStep2}}">
+          <view class="image-box">
+            <image wx:if="{{productImage}}" class="product-image" src="{{productImage}}" mode="aspectFit" />
+            <view wx:else class="image-placeholder">
+              <text class="placeholder-icon">图</text>
+            </view>
+          </view>
+          <view class="plus-icon">+</view>
+        </block>
+        <!-- 模板图片 -->
+        <view class="image-box">
+          <image wx:if="{{templateCover}}" class="template-cover" src="{{templateCover}}" mode="aspectFit" />
+          <view wx:else class="image-placeholder">
+            <text class="placeholder-icon">图</text>
+          </view>
+        </view>
       </view>
-      <view
-        class="size-item {{selectedSize === '3:4' ? 'active' : ''}}"
-        bindtap="selectSize"
-        data-size="3:4"
-      >
-        <view class="size-preview" style="width: 54rpx; height: 72rpx;"></view>
-        <text class="size-label">3:4</text>
-      </view>
-      <view
-        class="size-item {{selectedSize === '4:3' ? 'active' : ''}}"
-        bindtap="selectSize"
-        data-size="4:3"
-      >
-        <view class="size-preview" style="width: 72rpx; height: 54rpx;"></view>
-        <text class="size-label">4:3</text>
-      </view>
-      <view
-        class="size-item {{selectedSize === '1:1' ? 'active' : ''}}"
-        bindtap="selectSize"
-        data-size="1:1"
-      >
-        <view class="size-preview" style="width: 64rpx; height: 64rpx;"></view>
-        <text class="size-label">1:1</text>
+      <!-- 右侧：名称和描述 -->
+      <view class="info-column">
+        <view class="info-item" wx:if="{{hasStep2}}">
+          <text class="info-label">产品</text>
+          <text class="info-value">{{productName || '-'}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">模板</text>
+          <text class="info-value">{{templateName || '-'}}</text>
+        </view>
+        <view class="info-item" wx:if="{{templateDesc || functionDesc}}">
+          <text class="info-label">描述</text>
+          <text class="info-value">{{templateDesc || functionDesc || '-'}}</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 表单输入 -->
-  <view class="section form-section">
-    <view class="form-item">
-      <view class="form-label">价格文案</view>
-      <input
-        class="form-input"
-        placeholder="请输入价格文案"
-        value="{{priceText}}"
-        bindinput="onPriceTextInput"
-        maxlength="20"
-      />
+  <!-- 生成物尺寸 -->
+  <view class="section" wx:if="{{availableSizes.length > 0}}">
+    <view class="section-title">生成物尺寸</view>
+    <view class="size-grid">
+      <view
+        wx:for="{{availableSizes}}"
+        wx:key="_id"
+        class="size-item {{selectedSize === item._id ? 'active' : ''}}"
+        bindtap="selectSize"
+        data-size-id="{{item._id}}"
+      >
+        <view class="size-icon-wrap" wx:if="{{item.example_image}}">
+          <image class="size-icon" src="{{item.example_image}}" mode="aspectFit" />
+        </view>
+        <view class="size-icon-placeholder" wx:else>
+          <text class="placeholder-text">{{item.name}}</text>
+        </view>
+        <view class="size-name">{{item.name}}</view>
+      </view>
     </view>
+    <!-- 选中尺寸的描述 -->
+    <view class="selected-size-desc" wx:if="{{selectedSizeInfo && selectedSizeInfo.description}}">
+      <text class="desc-label">当前尺寸：</text>
+      <text class="desc-value">{{selectedSizeInfo.description}}</text>
+    </view>
+  </view>
 
-    <view class="form-item">
+  <!-- 用户输入字段 - 按顺序渲染：多行文本 → 单行文本 → 数字文本 → 图片上传 -->
+  <view class="section form-section" wx:if="{{sortedInputFields.length > 0}}">
+    <!-- 多行文本 (textarea/multiline) -->
+    <view class="form-item" wx:for="{{sortedInputFields}}" wx:key="fieldKey" wx:if="{{item.fieldType === 'textarea' || item.fieldType === 'multiline'}}">
       <view class="form-label">
-        <text>自定义文案</text>
-        <text class="char-count">{{customText.length}}/50</text>
+        <text>{{item.fieldName}}</text>
+        <text class="required-mark" wx:if="{{item.isRequired}}">*</text>
+        <text class="char-count">{{formDataLength[item.fieldKey] || 0}}/{{item.maxLength || 200}}</text>
       </view>
       <textarea
         class="form-textarea"
-        placeholder="请输入自定义文案"
-        value="{{customText}}"
-        bindinput="onCustomTextInput"
-        maxlength="50"
-        auto-height
+        placeholder="{{item.placeholder || '请输入' + item.fieldName}}"
+        value="{{formData[item.fieldKey]}}"
+        data-field="{{item.fieldKey}}"
+        bindinput="onFormInput"
+        maxlength="{{item.maxLength || 200}}"
       />
     </view>
 
-    <view class="form-item">
-      <view class="form-label">个人专属二维码</view>
-      <view class="upload-area" bindtap="uploadQrCode">
-        <image
-          wx:if="{{qrCodeUrl}}"
-          class="upload-image"
-          src="{{qrCodeUrl}}"
-          mode="aspectFill"
-        />
-        <view wx:else class="upload-placeholder">
-          <text class="upload-icon">+</text>
-          <text class="upload-text">上传二维码</text>
+    <!-- 单行文本 (text) -->
+    <view class="form-item" wx:for="{{sortedInputFields}}" wx:key="fieldKey" wx:if="{{item.fieldType === 'text'}}">
+      <view class="form-label">
+        <text>{{item.fieldName}}</text>
+        <text class="required-mark" wx:if="{{item.isRequired}}">*</text>
+      </view>
+      <input
+        class="form-input"
+        type="text"
+        placeholder="{{item.placeholder || '请输入' + item.fieldName}}"
+        value="{{formData[item.fieldKey]}}"
+        data-field="{{item.fieldKey}}"
+        bindinput="onFormInput"
+        maxlength="{{item.maxLength || 50}}"
+      />
+    </view>
+
+    <!-- 数字文本 (number) -->
+    <view class="form-item" wx:for="{{sortedInputFields}}" wx:key="fieldKey" wx:if="{{item.fieldType === 'number'}}">
+      <view class="form-label">
+        <text>{{item.fieldName}}</text>
+        <text class="required-mark" wx:if="{{item.isRequired}}">*</text>
+      </view>
+      <input
+        class="form-input"
+        type="number"
+        placeholder="{{item.placeholder || '请输入' + item.fieldName}}"
+        value="{{formData[item.fieldKey]}}"
+        data-field="{{item.fieldKey}}"
+        bindinput="onFormInput"
+        maxlength="{{item.maxLength || 20}}"
+      />
+    </view>
+
+    <!-- 其他文本字段（未识别的类型，作为 textarea 显示） -->
+    <view class="form-item" wx:for="{{sortedInputFields}}" wx:key="fieldKey" wx:if="{{item.fieldType !== 'image' && item.fieldType !== 'text' && item.fieldType !== 'textarea' && item.fieldType !== 'multiline' && item.fieldType !== 'number'}}">
+      <view class="form-label">
+        <text>{{item.fieldName}}</text>
+        <text class="required-mark" wx:if="{{item.isRequired}}">*</text>
+        <text class="char-count">{{formDataLength[item.fieldKey] || 0}}/{{item.maxLength || 200}}</text>
+      </view>
+      <textarea
+        class="form-textarea"
+        placeholder="{{item.placeholder || '请输入' + item.fieldName}}"
+        value="{{formData[item.fieldKey]}}"
+        data-field="{{item.fieldKey}}"
+        bindinput="onFormInput"
+        maxlength="{{item.maxLength || 200}}"
+      />
+    </view>
+
+    <!-- 图片上传 (image) - 横向排列，每行3个 -->
+    <view wx:if="{{imageFields.length > 0}}">
+      <view class="section-title">上传图片</view>
+      <view class="upload-grid">
+        <view
+          wx:for="{{imageFields}}"
+          wx:key="fieldKey"
+          class="upload-area"
+          bindtap="uploadFieldImage"
+          data-field="{{item.fieldKey}}"
+        >
+          <image
+            wx:if="{{formData[item.fieldKey]}}"
+            class="upload-image"
+            src="{{formData[item.fieldKey]}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="upload-placeholder">
+            <text class="upload-icon">+</text>
+            <text class="upload-text">{{item.fieldName}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付方式选择 -->
+  <view class="section payment-section">
+    <view class="section-title">支付方式</view>
+    
+    <!-- 企业用户：分两行布局 -->
+    <view class="payment-layout" wx:if="{{isEnterpriseUser}}">
+      <!-- 第一行：企业余额支付（宽度拉通） -->
+      <view
+        class="payment-item payment-enterprise-item {{selectedCostType === 'enterprise_balance' ? 'active' : ''}}"
+        bindtap="selectCostType"
+        data-type="enterprise_balance"
+      >
+        <view class="payment-radio">
+          <view class="radio-inner" wx:if="{{selectedCostType === 'enterprise_balance'}}"></view>
+        </view>
+        <view class="payment-info">
+          <text class="payment-label">{{isEnterpriseAdmin ? '企业余额' : '子账号额度'}}</text>
+          <text class="payment-price">¥{{balancePriceDisplay}}</text>
+        </view>
+        <view class="payment-balance">
+          <text>{{isEnterpriseAdmin ? '企业余额: ¥' : '可用额度: ¥'}}{{isEnterpriseAdmin ? displayEnterpriseBalance : displaySubAccountBalance}}</text>
+          <text class="recharge-btn" wx:if="{{isEnterpriseAdmin}}" catchtap="goRechargeEnterprise">去充值</text>
+        </view>
+      </view>
+      
+      <!-- 第二行：个人余额 + 单次付费 -->
+      <view class="payment-row">
+        <!-- 个人余额支付 -->
+        <view
+          class="payment-item payment-balance-item {{selectedCostType === 'balance' ? 'active' : ''}}"
+          bindtap="selectCostType"
+          data-type="balance"
+        >
+          <view class="payment-radio">
+            <view class="radio-inner" wx:if="{{selectedCostType === 'balance'}}"></view>
+          </view>
+          <view class="payment-info">
+            <text class="payment-label">个人余额</text>
+            <text class="payment-price">¥{{balancePriceDisplay}}</text>
+          </view>
+          <view class="payment-balance">
+            <text>余额: ¥{{displayBalance}}</text>
+            <text class="recharge-btn" catchtap="goRecharge">去充值</text>
+          </view>
+        </view>
+        
+        <!-- 单次付费（微信支付） -->
+        <view
+          class="payment-item payment-cash-item {{selectedCostType === 'cash' ? 'active' : ''}}"
+          bindtap="selectCostType"
+          data-type="cash"
+          wx:if="{{generatePrice.cash_price > 0}}"
+        >
+          <view class="payment-radio">
+            <view class="radio-inner" wx:if="{{selectedCostType === 'cash'}}"></view>
+          </view>
+          <view class="payment-info">
+            <text class="payment-label">单次付费</text>
+            <text class="payment-price">¥{{cashPriceDisplay}}</text>
+          </view>
+          <image class="weixinpay-icon" src="/assets/weixinpay.png" mode="aspectFit" />
+        </view>
+      </view>
+    </view>
+    
+    <!-- 个人用户：左右排列 -->
+    <view class="payment-options" wx:else>
+      <!-- 个人余额支付 -->
+      <view
+        class="payment-item payment-balance-item {{selectedCostType === 'balance' ? 'active' : ''}}"
+        bindtap="selectCostType"
+        data-type="balance"
+      >
+        <view class="payment-radio">
+          <view class="radio-inner" wx:if="{{selectedCostType === 'balance'}}"></view>
+        </view>
+        <view class="payment-info">
+          <text class="payment-label">个人余额</text>
+          <text class="payment-price">¥{{balancePriceDisplay}}</text>
+        </view>
+        <view class="payment-balance">
+          <text>余额: ¥{{displayBalance}}</text>
+          <text class="recharge-btn" catchtap="goRecharge">去充值</text>
+        </view>
+      </view>
+      
+      <!-- 单次付费（微信支付） -->
+      <view
+        class="payment-item payment-cash-item {{selectedCostType === 'cash' ? 'active' : ''}}"
+        bindtap="selectCostType"
+        data-type="cash"
+        wx:if="{{generatePrice.cash_price > 0}}"
+      >
+        <view class="payment-radio">
+          <view class="radio-inner" wx:if="{{selectedCostType === 'cash'}}"></view>
+        </view>
+        <view class="payment-info">
+          <text class="payment-label">单次付费</text>
+          <text class="payment-price">¥{{cashPriceDisplay}}</text>
         </view>
       </view>
     </view>
@@ -114,15 +298,16 @@
 
   <!-- 价格信息 -->
   <view class="price-info">
-    <text class="price-label">消耗金额:</text>
-    <text class="price-value">¥{{displayPrice}}</text>
-    <text class="price-tip">(余额支付)</text>
+    <text class="price-label">本次生成花费</text>
+    <view class="price-value">
+      <text class="price-symbol">¥</text><text class="price-num">{{displayPrice}}</text>
+    </view>
   </view>
 
   <!-- 底部按钮 -->
   <view class="footer-actions">
     <button class="generate-btn {{showSuccessTip ? 'disabled' : ''}}" bindtap="generate" disabled="{{generating || showSuccessTip}}">
-      {{generating ? '生成中...' : showSuccessTip ? '已提交' : '立即生成'}}
+      {{generating ? '提交中...' : showSuccessTip ? '已提交' : '立即生成'}}
     </button>
     
     <!-- 生成成功提示 -->
@@ -132,11 +317,6 @@
         <text class="success-desc">预计1-3分钟完成，请前往作品仓库查看</text>
         <view class="success-btn" bindtap="goToWorks">前往作品仓库</view>
       </view>
-    </view>
-    
-    <view class="balance-tip" wx:if="{{!showSuccessTip}}">
-      <text>当前余额: ¥{{displayBalance}}</text>
-      <text class="recharge-link" bindtap="goRecharge">充值</text>
     </view>
   </view>
 </view>

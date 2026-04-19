@@ -1,0 +1,294 @@
+<!--pages/enterprise-materials/enterprise-materials.wxml-->
+<view class="container">
+  <!-- 未登录提示 -->
+  <view class="not-login-tip" wx:if="{{!isLogin}}">
+    <view class="tip-content">
+      <image class="tip-icon" src="/assets/icons/empty.png" mode="aspectFit" />
+      <text class="tip-title">登录后可使用企业素材库</text>
+      <text class="tip-desc">登录后可查看和管理企业共享的素材资源</text>
+      <button class="tip-btn" bindtap="goLogin">去登录</button>
+    </view>
+  </view>
+
+  <!-- 已登录内容 -->
+  <block wx:if="{{isLogin}}">
+  <!-- 编辑分类按钮 -->
+  <view class="category-header">
+    <view class="category-tip">企业素材库由管理员统一管理，可上传企业商品/产品图片供员工使用。建议抠图后上传png格式的素材。</view>
+    <view class="category-header-row">
+      <view class="batch-cut-btn" bindtap="goToBatchCut">批量抠图</view>
+      <view class="edit-category-btn" bindtap="goToCategoryManage" wx:if="{{canManage}}">编辑分类</view>
+    </view>
+  </view>
+
+  <!-- 顶部一级分类（包含全部选项） -->
+  <view class="top-categories">
+    <scroll-view class="category-scroll" scroll-x>
+      <view
+        class="top-category-item {{selectedCategory === '' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-id=""
+        data-name="全部"
+      >
+        全部
+      </view>
+      <view
+        class="top-category-item {{selectedCategory === item._id ? 'active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="_id"
+        bindtap="selectCategory"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+      >
+        {{item.name}}
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 左侧二级分类 + 右侧素材列表 -->
+  <view class="content-wrapper">
+    <!-- 左侧二级分类 -->
+    <scroll-view
+      class="side-categories"
+      scroll-y
+      scroll-top="{{sideScrollTop}}"
+      scroll-with-animation
+    >
+      <!-- 全部选项 -->
+      <view
+        id="sub-cat-all"
+        class="side-category-item {{selectedSubCategory === '' ? 'active' : ''}}"
+        bindtap="selectSubCategory"
+        data-id=""
+        data-name="全部"
+      >
+        全部
+      </view>
+      <!-- 二级分类列表 -->
+      <view
+        id="sub-cat-{{item._id}}"
+        class="side-category-item {{selectedSubCategory === item._id ? 'active' : ''}}"
+        wx:for="{{subCategories}}"
+        wx:key="_id"
+        bindtap="selectSubCategory"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+      >
+        {{item.name}}
+      </view>
+      <view class="empty-sub" wx:if="{{subCategories.length === 0}}">
+        <text>暂无二级分类</text>
+      </view>
+    </scroll-view>
+
+    <!-- 右侧素材列表 -->
+    <scroll-view
+      class="materials-container"
+      scroll-y
+      bindscroll="onMaterialScroll"
+      scroll-top="{{materialScrollTop}}"
+      scroll-with-animation
+    >
+      <view class="material-grid">
+        <!-- 按二级分类分组显示 -->
+        <block wx:for="{{groupedMaterials}}" wx:key="categoryId">
+          <!-- 分类标题 -->
+          <view class="category-section-header" id="section-{{item.categoryId}}">
+            {{item.categoryName}}
+          </view>
+
+          <!-- 该分类下的素材列表 -->
+          <view
+            class="material-item"
+            wx:for="{{item.materials}}"
+            wx:for-item="material"
+            wx:key="_id"
+            data-item="{{material}}"
+          >
+            <view wx:if="{{material.type === 'image'}}" class="image-wrapper" bindtap="previewImage" data-item="{{material}}">
+              <image src="{{material.thumbnail_url || material.url}}" mode="aspectFit" />
+            </view>
+            <view wx:if="{{material.type === 'video'}}" class="video-wrapper" bindtap="previewImage" data-item="{{material}}">
+              <video src="{{material.url }}" />
+            </view>
+            <view class="content">
+              <text class="material-name">{{material.displayName}}</text>
+              <view class="material-actions">
+                <text class="material-action" catchtap="editMaterialName" data-item="{{material}}">
+                  <text class="action-icon">✎</text>
+                  <text>名称</text>
+                </text>
+                <text class="material-action" catchtap="changeMaterialCategory" data-item="{{material}}">
+                  <text class="action-icon">☰</text>
+                  <text>分类</text>
+                </text>
+                <text class="material-action" catchtap="deleteMaterial" data-id="{{material._id}}">
+                  <text class="action-icon">✕</text>
+                  <text>删除</text>
+                </text>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty" wx:if="{{groupedMaterials.length === 0 && !loading}}">
+        <text class="empty-text">暂无素材</text>
+        <button class="empty-btn" bindtap="goToUploadWithCategory" wx:if="{{canUpload}}">去添加</button>
+      </view>
+
+      <!-- 加载更多提示 -->
+      <view class="load-more" wx:if="{{materials.length > 0}}">
+        <view wx:if="{{loadingMore}}" class="loading-more-text">加载中...</view>
+        <view wx:elif="{{!hasMore}}" class="no-more-text">没有更多素材了</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 上传按钮 -->
+  <view class="upload-btn" bindtap="goToUpload" wx:if="{{canUpload}}">
+    <text>+</text>
+  </view>
+  </block>
+</view>
+
+<!-- 修改素材分类弹框 -->
+<view class="modal-mask" wx:if="{{showChangeCategoryModal}}" bindtap="hideChangeCategoryModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">修改分类</text>
+      <text class="modal-close" catchtap="hideChangeCategoryModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <!-- 左右联动的分类选择器 -->
+      <view class="category-picker-wrapper">
+        <view class="category-picker-left">
+          <scroll-view scroll-y class="category-picker-scroll">
+            <view class="picker-category-item {{pickerSelectedTopCategory === '' ? 'active' : ''}}" bindtap="selectPickerTopCategory" data-id="" data-name="全部">
+              全部
+            </view>
+            <view
+              class="picker-category-item {{pickerSelectedTopCategory === item._id ? 'active' : ''}}"
+              wx:for="{{pickerTopCategories}}"
+              wx:key="_id"
+              bindtap="selectPickerTopCategory"
+              data-id="{{item._id}}"
+              data-name="{{item.name}}"
+            >
+              {{item.name}}
+            </view>
+          </scroll-view>
+        </view>
+        <view class="category-picker-right">
+          <scroll-view scroll-y class="category-picker-scroll">
+            <view class="empty-picker" wx:if="{{pickerSubCategories.length === 0 && pickerSelectedTopCategory !== ''}}">
+              <text>暂无二级分类</text>
+            </view>
+            <view
+              class="picker-category-item {{pickerSelectedSubCategory === '' && pickerSelectedTopCategory !== '' ? 'active' : ''}}"
+              wx:if="{{pickerSelectedTopCategory !== ''}}"
+              bindtap="selectPickerSubCategory"
+              data-id=""
+              data-name=""
+            >
+              一级分类
+            </view>
+            <view
+              class="picker-category-item {{pickerSelectedSubCategory === item._id ? 'active' : ''}}"
+              wx:for="{{pickerSubCategories}}"
+              wx:key="_id"
+              bindtap="selectPickerSubCategory"
+              data-id="{{item._id}}"
+              data-name="{{item.name}}"
+            >
+              {{item.name}}
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" catchtap="hideChangeCategoryModal">取消</button>
+      <button class="modal-btn confirm" catchtap="confirmChangeCategory">确定</button>
+    </view>
+  </view>
+</view>
+
+<!-- 编辑素材名称弹框 -->
+<view class="modal-mask {{keyboardShown ? 'keyboard-up' : ''}}" wx:if="{{showEditMaterialModal}}" catchtap="hideEditMaterialModal">
+  <view class="modal-content {{keyboardShown ? 'content-keyboard-up' : ''}}" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">编辑素材名称</text>
+      <text class="modal-close" catchtap="hideEditMaterialModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <view class="form-label">素材名称</view>
+        <view class="input-wrapper">
+          <input
+            class="form-input"
+            placeholder="请输入素材名称"
+            value="{{editMaterialName}}"
+            bindinput="onEditMaterialNameInput"
+            bindfocus="onInputFocus"
+            bindblur="onInputBlur"
+            catchtap="stopPropagation"
+            hold-keyboard="{{true}}"
+          />
+          <text class="input-clear" wx:if="{{editMaterialName}}" catchtap="clearEditMaterialName">✕</text>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" catchtap="hideEditMaterialModal">取消</button>
+      <button class="modal-btn confirm" catchtap="saveMaterialName">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 分类管理弹框 -->
+<view class="modal-mask" wx:if="{{showCategoryModal}}" bindtap="hideCategoryModal">
+  <view class="modal-content" catchtap="">
+    <view class="modal-header">
+      <text class="modal-title">添加分类</text>
+      <text class="modal-close" bindtap="hideCategoryModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <view class="form-label">分类名称</view>
+        <input
+          class="form-input"
+          placeholder="请输入分类名称"
+          value="{{newCategoryName}}"
+          bindinput="onCategoryNameInput"
+        />
+      </view>
+      <view class="form-item">
+        <view class="form-label">分类级别</view>
+        <picker
+          mode="selector"
+          range="{{['一级分类', '二级分类']}}"
+          bindchange="onCategoryLevelChange"
+        >
+          <view class="picker">{{categoryLevel === 'sub' ? '二级分类' : '一级分类'}}</view>
+        </picker>
+      </view>
+      <view class="form-item" wx:if="{{categoryLevel === 'sub' && topCategories.length > 0}}">
+        <view class="form-label">选择父分类</view>
+        <picker
+          mode="selector"
+          range="{{topCategories}}"
+          range-key="name"
+          bindchange="onParentCategoryChange"
+        >
+          <view class="picker">{{parentCategoryName || '请选择'}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel" bindtap="hideCategoryModal">取消</button>
+      <button class="modal-btn confirm" bindtap="addCategory">确定</button>
+    </view>
+  </view>
+</view>

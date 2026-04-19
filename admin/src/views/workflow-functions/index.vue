@@ -69,8 +69,8 @@
         <el-table-column label="生成价格" width="140" align="center">
           <template #default="{ row }">
             <div class="price-info">
-              <span>付费: ¥{{ row.generate_price?.cash_price || 0 }}</span>
-              <span>余额: {{ row.generate_price?.balance_price || 0 }}</span>
+              <span>付费: ¥{{ ((row.generate_price?.cash_price || 0) / 100).toFixed(2) }}</span>
+              <span>余额: {{ ((row.generate_price?.balance_price || 0) / 100).toFixed(2) }}</span>
             </div>
           </template>
         </el-table-column>
@@ -78,8 +78,8 @@
           <template #default="{ row }">
             <template v-if="row.expand_price?.enabled">
               <div class="price-info">
-                <span>付费: ¥{{ row.expand_price?.cash_price || 0 }}</span>
-                <span>余额: {{ row.expand_price?.balance_price || 0 }}</span>
+                <span>付费: ¥{{ ((row.expand_price?.cash_price || 0) / 100).toFixed(2) }}</span>
+                <span>余额: {{ ((row.expand_price?.balance_price || 0) / 100).toFixed(2) }}</span>
               </div>
             </template>
             <span v-else style="color: #999">不支持</span>
@@ -144,6 +144,18 @@
               :value="wp._id"
             />
           </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="form.workflowProductId && workflowProducts.find(w => w._id === form.workflowProductId)?.flow_steps?.step1_select_style" label="关联模板">
+          <el-select v-model="form.templateId" placeholder="请选择关联模板（用于参考样图）" clearable style="width: 100%">
+            <el-option
+              v-for="t in templates"
+              :key="t._id"
+              :label="t.templateName"
+              :value="t._id"
+            />
+          </el-select>
+          <div style="color: #909399; font-size: 12px; margin-top: 4px">选择模板后，小程序将显示该模板的参考样图</div>
         </el-form-item>
 
         <el-form-item label="行业属性" prop="industries">
@@ -268,6 +280,7 @@ export default {
     const submitLoading = ref(false)
     const formRef = ref(null)
     const workflowProducts = ref([])
+    const templates = ref([])
     const currentEditId = ref(null)
     const thumbnailInput = ref(null)
     const fullsizeInput = ref(null)
@@ -305,6 +318,7 @@ export default {
       description: '',
       workflowProductId: '',
       workflowProductName: '',
+      templateId: '',
       industries: [],
       generatePrice: { cashPrice: 0, balancePrice: 0 },
       expandPrice: { enabled: false, cashPrice: 0, balancePrice: 0 },
@@ -409,20 +423,21 @@ export default {
     const handleEdit = (row) => {
       dialogTitle.value = '编辑功能'
       currentEditId.value = row._id
-      loadWorkflowProducts().then(() => {
+      loadWorkflowProducts().then(async () => {
         form.name = row.name
         form.description = row.description || ''
         form.workflowProductId = row.workflow_product_id
         form.workflowProductName = row.workflow_product_name || ''
+        form.templateId = row.template_id || ''
         form.industries = row.industries || []
         form.generatePrice = {
-          cashPrice: row.generate_price?.cash_price || 0,
-          balancePrice: row.generate_price?.balance_price || 0
+          cashPrice: (row.generate_price?.cash_price || 0) / 100,
+          balancePrice: (row.generate_price?.balance_price || 0) / 100
         }
         form.expandPrice = {
           enabled: row.expand_price?.enabled || false,
-          cashPrice: row.expand_price?.cash_price || 0,
-          balancePrice: row.expand_price?.balance_price || 0
+          cashPrice: (row.expand_price?.cash_price || 0) / 100,
+          balancePrice: (row.expand_price?.balance_price || 0) / 100
         }
         form.images = {
           thumbnail: row.images?.thumbnail || '',
@@ -431,6 +446,12 @@ export default {
         form.referenceImages = row.reference_images || []
         form.selectedSizes = row.selected_sizes || []
         form.isActive = row.is_active !== false
+        
+        // 如果有模板选择页，加载模板列表
+        const wp = workflowProducts.value.find(w => w._id === row.workflow_product_id)
+        if (wp?.flow_steps?.step1_select_style) {
+          await loadTemplates()
+        }
       })
       dialogVisible.value = true
     }
@@ -443,6 +464,27 @@ export default {
         if (wp.flow_steps?.step4_resize && !form.expandPrice.enabled) {
           form.expandPrice.enabled = true
         }
+        // 如果有 step1（模板选择页），加载模板列表
+        if (wp.flow_steps?.step1_select_style) {
+          loadTemplates()
+        } else {
+          form.templateId = ''
+          templates.value = []
+        }
+      }
+    }
+
+    // 加载模板列表
+    const loadTemplates = async () => {
+      try {
+        const token = store.state.token
+        const res = await api.getTemplates({ page: 1, pageSize: 500, status: 'enabled' }, token)
+        const result = res.result || res
+        if (result.success) {
+          templates.value = result.list || []
+        }
+      } catch (err) {
+        console.error('加载模板列表失败:', err)
       }
     }
 
@@ -506,12 +548,14 @@ export default {
       form.description = ''
       form.workflowProductId = ''
       form.workflowProductName = ''
+      form.templateId = ''
       form.industries = []
       form.generatePrice = { cashPrice: 0, balancePrice: 0 }
       form.expandPrice = { enabled: false, cashPrice: 0, balancePrice: 0 }
       form.images = { thumbnail: '', fullsize: '' }
       form.referenceImages = []
       form.selectedSizes = []
+      templates.value = []
       form.isActive = true
       formRef.value?.resetFields()
     }
@@ -529,15 +573,16 @@ export default {
           description: form.description,
           workflowProductId: form.workflowProductId,
           workflowProductName: form.workflowProductName,
+          templateId: form.templateId || '',
           industries: form.industries,
           generatePrice: {
-            cash_price: form.generatePrice.cashPrice,
-            balance_price: form.generatePrice.balancePrice
+            cash_price: Math.round(form.generatePrice.cashPrice * 100),
+            balance_price: Math.round(form.generatePrice.balancePrice * 100)
           },
           expandPrice: {
             enabled: form.expandPrice.enabled,
-            cash_price: form.expandPrice.cashPrice,
-            balance_price: form.expandPrice.balancePrice
+            cash_price: Math.round(form.expandPrice.cashPrice * 100),
+            balance_price: Math.round(form.expandPrice.balancePrice * 100)
           },
           images: form.images,
           referenceImages: form.referenceImages,
@@ -622,6 +667,7 @@ export default {
       form,
       rules,
       workflowProducts,
+      templates,
       industryOptions,
       uploading,
       sizeList,
@@ -631,6 +677,7 @@ export default {
       fullsizeInput,
       referenceImageInput,
       loadData,
+      loadTemplates,
       handleSearch,
       handleReset,
       handleAdd,

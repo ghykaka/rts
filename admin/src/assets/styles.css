@@ -23,3 +23,31 @@ html, body, #app {
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
+
+/* 全局样式 - el-image-viewer 必须最高层级 */
+.el-image-viewer__wrapper {
+  z-index: 2147483647 !important;
+}
+.el-image-viewer {
+  z-index: 2147483647 !important;
+}
+.el-image-viewer__mask {
+  z-index: 2147483646 !important;
+}
+[class*="el-image-viewer"] {
+  z-index: 2147483647 !important;
+}
+
+/* 修复 el-image 透明图片黑底问题 */
+.el-image {
+  background-color: #ffffff !important;
+}
+.el-image__wrapper {
+  background-color: #ffffff !important;
+}
+.el-image__inner {
+  background-color: #ffffff !important;
+}
+.el-image__placeholder {
+  background-color: #ffffff !important;
+}

@@ -39,28 +39,38 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
-      const db = wx.cloud.database()
+      const userId = wx.getStorageSync('userId')
 
       if (isEdit) {
-        // 编辑分类
-        await db.collection('material_categories').doc(categoryId).update({
+        // 编辑分类 - 使用云函数
+        const res = await wx.cloud.callFunction({
+          name: 'getAppCategories',
           data: {
-            name: name.trim(),
-            update_time: db.serverDate()
+            action: 'updateCategory',
+            categoryId: categoryId,
+            name: name.trim()
           }
         })
+
+        if (!res.result || !res.result.success) {
+          throw new Error(res.result?.error || '更新失败')
+        }
       } else {
-        // 添加分类
-        await db.collection('material_categories').add({
+        // 添加分类 - 使用云函数
+        const res = await wx.cloud.callFunction({
+          name: 'getAppCategories',
           data: {
+            action: 'addCategory',
             name: name.trim(),
-            parent_id: parentId || null,
-            owner_type: type,
-            owner_id: wx.getStorageSync('userId'),
-            sort_order: 0,
-            create_time: db.serverDate()
+            parentId: parentId || '',
+            userType: type,
+            userId: userId
           }
         })
+
+        if (!res.result || !res.result.success) {
+          throw new Error(res.result?.error || '添加失败')
+        }
       }
 
       wx.hideLoading()
@@ -71,7 +81,7 @@ Page({
     } catch (err) {
       console.error('save error:', err)
       wx.hideLoading()
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
     }
   }
 })

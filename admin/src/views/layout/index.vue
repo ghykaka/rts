@@ -27,18 +27,18 @@
             <span>充值记录</span>
           </el-menu-item>
           
+          <el-menu-item index="/order">
+            <span>订单管理</span>
+          </el-menu-item>
+          
           <el-menu-item index="/material">
             <span>素材管理</span>
           </el-menu-item>
-          
-          <el-menu-item index="/coze">
-            <span>Coze工作流</span>
-          </el-menu-item>
-          
+
           <el-menu-item index="/workflow-products">
             <span>工作流产品</span>
           </el-menu-item>
-          
+
           <el-menu-item index="/workflow-functions">
             <span>功能管理</span>
           </el-menu-item>
@@ -47,10 +47,17 @@
             <span>模板管理</span>
           </el-menu-item>
 
+          <el-menu-item index="/platform/home-config">
+            <span>首页配置</span>
+          </el-menu-item>
+
           <el-sub-menu index="/platform">
             <template #title>
               <span>平台配置</span>
             </template>
+            <el-menu-item index="/coze">
+              <span>Coze工作流</span>
+            </el-menu-item>
             <el-menu-item index="/platform/generate-sizes">
               <span>生成物尺寸</span>
             </el-menu-item>
@@ -60,11 +67,11 @@
             <el-menu-item index="/platform/category">
               <span>模板分类</span>
             </el-menu-item>
-            <el-menu-item index="/platform/home-config">
-              <span>首页配置</span>
-            </el-menu-item>
             <el-menu-item index="/platform/article">
               <span>文章管理</span>
+            </el-menu-item>
+            <el-menu-item index="/platform/recharge-config">
+              <span>充值金额配置</span>
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -136,6 +143,12 @@ export default {
 </script>
 
 <style scoped>
+/* 顶部菜单文字颜色为白色 */
+:deep(.el-menu--horizontal > .el-menu-item),
+:deep(.el-menu--horizontal > .el-sub-menu .el-sub-menu__title) {
+  color: #ffffff !important;
+}
+
 .layout-container {
   height: 100vh;
   display: flex;
@@ -158,13 +171,15 @@ export default {
   display: flex;
   align-items: center;
   height: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .logo {
   font-size: 20px;
   font-weight: bold;
   color: #fff;
-  margin-right: 40px;
+  margin-right: 30px;
   letter-spacing: 1px;
   white-space: nowrap;
 }
@@ -176,16 +191,22 @@ export default {
   height: 60px;
   line-height: 60px;
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.el-menu--horizontal) {
+  overflow: visible !important;
 }
 
 ::deep(.el-menu-item),
 ::deep(.el-sub-menu__title) {
   color: #ffffff !important;
-  font-size: 16px !important;
+  font-size: 14px !important;
   font-weight: bold !important;
   height: 60px;
   line-height: 60px;
-  padding: 0 14px !important;
+  padding: 0 10px !important;
   border-bottom: 3px solid transparent;
   min-width: auto;
 }
@@ -200,12 +221,12 @@ export default {
 ::deep(.el-menu-item:hover),
 ::deep(.el-sub-menu__title:hover) {
   background: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
+  color: #409eff !important;
 }
 
 ::deep(.el-menu-item.is-active) {
-  color: #ffffff !important;
-  border-bottom-color: #ffd700 !important;
+  color: #409eff !important;
+  border-bottom-color: #409eff !important;
   background: rgba(255, 255, 255, 0.1) !important;
 }
 

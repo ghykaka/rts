@@ -6,6 +6,7 @@
     "pages/template-detail/template-detail",
     "pages/template-list/template-list",
     "pages/materials/materials",
+    "pages/enterprise-materials/enterprise-materials",
     "pages/material-upload/material-upload",
     "pages/recharge/recharge",
     "pages/enterprise/enterprise",
@@ -14,10 +15,14 @@
     "pages/add-templates/add-templates",
     "pages/product-select/product-select",
     "pages/generate/generate",
+    "pages/generate-flow/generate-flow",
     "pages/enterprise-register/enterprise-register",
     "pages/sub-accounts/sub-accounts",
     "pages/category-manage/category-manage",
-    "pages/category-edit/category-edit"
+    "pages/category-edit/category-edit",
+    "pages/article-detail/article-detail",
+    "pages/order-detail/order-detail",
+    "pages/recharge-records/recharge-records"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -27,21 +32,27 @@
   },
   "tabBar": {
     "color": "#999999",
-    "selectedColor": "#333333",
+    "selectedColor": "#FF2C6D",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
       },
       {
         "pagePath": "pages/works/works",
-        "text": "作品库"
+        "text": "作品库",
+        "iconPath": "assets/icons/works.png",
+        "selectedIconPath": "assets/icons/works-active.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-active.png"
       }
     ]
   },

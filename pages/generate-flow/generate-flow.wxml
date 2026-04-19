@@ -1,0 +1,141 @@
+<!--pages/generate-flow/generate-flow.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 未登录 -->
+  <view class="not-login" wx:elif="{{!isLogin}}">
+    <text>请先登录</text>
+    <button bindtap="goLogin">去登录</button>
+  </view>
+
+  <!-- 内容 -->
+  <block wx:else>
+    <!-- 步骤指示器 -->
+    <view class="steps-indicator">
+      <view class="step-item {{currentStep >= 1 ? 'active' : ''}}">
+        <view class="step-dot">1</view>
+        <text class="step-text">选择模板</text>
+      </view>
+      <view class="step-line {{currentStep >= 2 ? 'active' : ''}}"></view>
+      <view class="step-item {{currentStep >= 2 ? 'active' : ''}}">
+        <view class="step-dot">2</view>
+        <text class="step-text">选择素材</text>
+      </view>
+      <view class="step-line {{currentStep >= 3 ? 'active' : ''}}"></view>
+      <view class="step-item {{currentStep >= 3 ? 'active' : ''}}">
+        <view class="step-dot">3</view>
+        <text class="step-text">生成</text>
+      </view>
+    </view>
+
+    <!-- 步骤1: 选择模板 -->
+    <view class="step-content" wx:if="{{currentStep === 1 && flowSteps.step1_select_style}}">
+      <view class="step-header">
+        <text class="step-title">选择模板</text>
+        <text class="step-desc">根据您的行业筛选模板</text>
+      </view>
+      
+      <!-- 选中模板显示 -->
+      <view class="selected-preview" wx:if="{{selectedTemplate}}">
+        <image src="{{selectedTemplate.cover_url || selectedTemplate.thumbnail}}" mode="aspectFit" />
+        <view class="preview-info">
+          <text class="preview-name">{{selectedTemplate.name}}</text>
+          <text class="preview-tip">已选择</text>
+        </view>
+      </view>
+
+      <!-- 跳转到模板列表 -->
+      <view class="action-btn" bindtap="goToTemplateList">
+        <text>{{selectedTemplate ? '重新选择模板' : '去选择模板'}}</text>
+      </view>
+    </view>
+
+    <!-- 步骤2: 选择素材 -->
+    <view class="step-content" wx:if="{{currentStep === 2 && flowSteps.step2_materials}}">
+      <view class="step-header">
+        <text class="step-title">选择素材</text>
+        <text class="step-desc">选择您的商品/产品素材</text>
+      </view>
+
+      <!-- 素材类型切换 -->
+      <view class="material-type-tabs">
+        <view 
+          class="tab-item {{materialType === 'personal' ? 'active' : ''}}" 
+          data-type="personal"
+          bindtap="onMaterialTypeChange"
+        >个人素材库</view>
+        <view 
+          class="tab-item {{materialType === 'enterprise' ? 'active' : ''}}" 
+          data-type="enterprise"
+          bindtap="onMaterialTypeChange"
+          wx:if="{{isEnterprise}}"
+        >企业素材库</view>
+      </view>
+      
+      <!-- 选中素材显示 -->
+      <view class="selected-materials" wx:if="{{selectedMaterials.length > 0}}">
+        <text class="selected-count">已选择 {{selectedMaterials.length}} 个素材</text>
+        <view class="material-chips">
+          <view class="chip" wx:for="{{selectedMaterials}}" wx:key="_id">
+            {{item.displayName || item.name}}
+          </view>
+        </view>
+      </view>
+
+      <!-- 跳转到素材选择 -->
+      <view class="action-btn" bindtap="goToMaterials">
+        <text>{{selectedMaterials.length > 0 ? '重新选择素材' : '去选择素材'}}</text>
+      </view>
+
+      <!-- 确认按钮 -->
+      <view class="confirm-btn" bindtap="confirmMaterials" wx:if="{{selectedMaterials.length > 0}}">
+        <text>下一步</text>
+      </view>
+    </view>
+
+    <!-- 步骤3: 生成 -->
+    <view class="step-content" wx:if="{{currentStep === 3}}">
+      <view class="step-header">
+        <text class="step-title">准备生成</text>
+        <text class="step-desc">{{functionName}}</text>
+      </view>
+
+      <!-- 配置汇总 -->
+      <view class="summary">
+        <view class="summary-item" wx:if="{{flowSteps.step1_select_style}}">
+          <text class="summary-label">模板</text>
+          <text class="summary-value">{{selectedTemplate.name || '未选择'}}</text>
+        </view>
+        <view class="summary-item" wx:if="{{flowSteps.step2_materials}}">
+          <text class="summary-label">素材</text>
+          <text class="summary-value">{{selectedMaterials.length}} 个</text>
+        </view>
+        <view class="summary-item">
+          <text class="summary-label">价格</text>
+          <text class="summary-value">
+            <text wx:if="{{generatePrice.cash_price > 0}}">¥{{generatePrice.cash_price}}</text>
+            <text wx:if="{{generatePrice.balance_price > 0}}"> + {{generatePrice.balance_price}}余额</text>
+          </text>
+        </view>
+      </view>
+
+      <!-- 开始生成 -->
+      <view class="action-btn primary" bindtap="goToGenerate">
+        <text>开始生成</text>
+      </view>
+    </view>
+
+    <!-- 底部导航 -->
+    <view class="bottom-nav">
+      <view class="nav-btn prev" bindtap="prevStep" wx:if="{{currentStep > 1}}">
+        <text>上一步</text>
+      </view>
+      <view class="nav-btn next" bindtap="nextStep" wx:if="{{currentStep < 3}}">
+        <text>下一步</text>
+      </view>
+    </view>
+  </block>
+</view>

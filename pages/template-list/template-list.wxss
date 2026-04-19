@@ -2,7 +2,7 @@
 .container {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 40rpx;
+  padding: 0 0 40rpx 0;
 }
 
 /* Step标题 */
@@ -13,6 +13,84 @@
   color: #333;
   background: #fff;
   margin-bottom: 20rpx;
+}
+
+/* 筛选区域 */
+.filter-section {
+  background: #fff;
+  padding: 20rpx 20rpx;
+  margin-bottom: 2rpx;
+}
+
+.sub-category-section {
+  background: #fff;
+  padding: 16rpx 20rpx;
+  margin-bottom: 2rpx;
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 20rpx;
+}
+
+.filter-label {
+  width: 60rpx;
+  font-size: 26rpx;
+  color: #999;
+  flex-shrink: 0;
+  padding-top: 8rpx;
+}
+
+.filter-scroll {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.filter-scroll-full {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.filter-tags {
+  display: inline-flex;
+  gap: 16rpx;
+  padding-right: 20rpx;
+}
+
+.filter-tag {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+  white-space: nowrap;
+}
+
+.filter-tag.small {
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+}
+
+.filter-tag.active {
+  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+  color: #fff;
+  font-weight: 500;
+}
+
+.filter-tag.owned {
+  color: #333;
+}
+
+.filter-tag.more {
+  color: #999;
+  font-size: 24rpx;
+}
+
+/* 二级分类行 */
+.sub-row {
+  margin-top: 16rpx;
 }
 
 /* 顶部分类标签栏 */
@@ -46,8 +124,9 @@
 /* 瀑布流容器 - 3列 */
 .waterfall-container {
   display: flex;
-  padding: 20rpx;
+  padding: 20rpx 20rpx;
   gap: 16rpx;
+  box-sizing: border-box;
 }
 
 .waterfall-column {
@@ -55,6 +134,7 @@
   display: flex;
   flex-direction: column;
   gap: 16rpx;
+  min-width: 0;
 }
 
 /* 模板卡片 */
@@ -76,7 +156,7 @@
 }
 
 .template-title {
-  font-size: 24rpx; /* 12px */
+  font-size: 24rpx;
   color: #000;
   font-weight: bold;
   display: block;
@@ -86,10 +166,26 @@
   white-space: nowrap;
 }
 
+.template-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+}
+
 .template-category {
-  font-size: 20rpx; /* 10px */
+  font-size: 18rpx;
   color: #999;
-  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.template-function {
+  font-size: 18rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rpx 10rpx;
+  border-radius: 20rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

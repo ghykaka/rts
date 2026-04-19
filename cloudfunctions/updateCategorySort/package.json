@@ -1,0 +1,9 @@
+{
+  "name": "updateCategorySort",
+  "version": "1.0.0",
+  "description": "轻量级分类排序更新",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

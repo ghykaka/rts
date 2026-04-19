@@ -1,0 +1,10 @@
+{
+  "name": "executeworkflow",
+  "version": "1.0.0",
+  "description": "执行 Coze 工作流",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "wx-server-sdk": "~2.6.3"
+  }
+}

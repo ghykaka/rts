@@ -14,7 +14,8 @@ Page({
     hasEnterprise: false, // 是否有企业账号
     currentBalance: '0.00', // 当前显示的余额
     rechargeButtonText: '充值', // 充值按钮文字
-    isEnterpriseAdmin: false // 是否是企业管理员
+    isEnterpriseAdmin: false, // 是否是企业管理员
+    balanceLabel: '个人余额' // 余额标签（带企业简称或昵称）
   },
 
   onLoad() {
@@ -127,13 +128,22 @@ Page({
     // 根据模式决定显示哪个余额
     const currentBalance = mode === 'enterprise' ? enterpriseBalance : personalBalance
     const displayBalance = (currentBalance / 100).toFixed(2)
+    
+    // 余额标签：企业余额-企业简称 / 个人余额-用户昵称
+    let balanceLabel = '个人余额'
+    if (mode === 'enterprise') {
+      balanceLabel = '企业余额 - ' + (userInfo.company_short_name || userInfo.company_name || '')
+    } else {
+      balanceLabel = '个人余额 - ' + (userInfo.nickname || '微信用户')
+    }
 
     this.setData({
       balance: personalBalance,
       displayBalance: displayBalance,
       enterpriseBalance: (enterpriseBalance / 100).toFixed(2),
       personalBalance: (personalBalance / 100).toFixed(2),
-      currentBalance: displayBalance
+      currentBalance: displayBalance,
+      balanceLabel: balanceLabel
     })
   },
 
@@ -145,10 +155,12 @@ Page({
     }
 
     const enterpriseBalance = this.data.userInfo.enterprise_balance || 0
+    const balanceLabel = '企业余额 - ' + (this.data.userInfo.company_short_name || this.data.userInfo.company_name || '')
     this.setData({ 
       currentMode: 'enterprise',
       userTypeText: this.getUserTypeText(this.data.userInfo, 'enterprise'),
       currentBalance: (enterpriseBalance / 100).toFixed(2),
+      balanceLabel: balanceLabel,
       rechargeButtonText: this.getRechargeButtonText('enterprise', this.data.isEnterpriseAdmin)
     })
     wx.setStorageSync('currentMode', 'enterprise')
@@ -157,10 +169,12 @@ Page({
   // 切换到个人模式
   switchToPersonal() {
     const personalBalance = this.data.userInfo.balance || 0
+    const balanceLabel = '个人余额 - ' + (this.data.userInfo.nickname || '微信用户')
     this.setData({ 
       currentMode: 'personal',
       userTypeText: this.getUserTypeText(this.data.userInfo, 'personal'),
       currentBalance: (personalBalance / 100).toFixed(2),
+      balanceLabel: balanceLabel,
       rechargeButtonText: this.getRechargeButtonText('personal', this.data.isEnterpriseAdmin)
     })
     wx.setStorageSync('currentMode', 'personal')
@@ -181,14 +195,21 @@ Page({
     })
   },
 
+  // 跳转充值记录
+  goRechargeRecords() {
+    wx.navigateTo({
+      url: '/pages/recharge-records/recharge-records'
+    })
+  },
+
   // 跳转个人素材库
   goPersonalMaterials() {
-    wx.navigateTo({ url: '/pages/materials/materials?type=personal' })
+    wx.navigateTo({ url: '/pages/materials/materials' })
   },
 
   // 跳转企业素材库
   goEnterpriseMaterials() {
-    wx.navigateTo({ url: '/pages/materials/materials?type=enterprise' })
+    wx.navigateTo({ url: '/pages/enterprise-materials/enterprise-materials' })
   },
 
   // 跳转企业注册
@@ -199,6 +220,22 @@ Page({
   // 跳转管理子账号
   goManageSubAccounts() {
     wx.navigateTo({ url: '/pages/sub-accounts/sub-accounts' })
+  },
+
+  // 跳转咨询客服（文章页面）
+  goToCustomerService() {
+    const articleId = '391fc5be69ddf746003b30a63faf9ef0'
+    wx.navigateTo({
+      url: `/pages/article-detail/article-detail?id=${articleId}`
+    })
+  },
+
+  // 跳转关于我们（文章页面）
+  goToAboutUs() {
+    const articleId = 'd3a1add769d61c2c002fd943466c9fce'
+    wx.navigateTo({
+      url: `/pages/article-detail/article-detail?id=${articleId}`
+    })
   },
 
   // 临时方法：更新企业账号余额为50元

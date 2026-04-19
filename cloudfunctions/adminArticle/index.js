@@ -23,7 +23,7 @@ exports.main = async (event, context) => {
       case 'update':
         return await update(data)
       case 'delete':
-        return await delete(data)
+        return await deleteArticle(data)
       default:
         return { success: false, error: '未知的操作' }
     }
@@ -93,7 +93,7 @@ async function update(data) {
   
   // 检查路径是否与其他文章冲突
   const exist = await db.collection('articles').where({
-    path,
+    path: path,
     _id: db.command.neq(id)
   }).count()
   if (exist.total > 0) {
@@ -107,7 +107,7 @@ async function update(data) {
 }
 
 // 删除文章
-async function delete(data) {
+async function deleteArticle(data) {
   const { id } = data
   if (!id) return { success: false, error: '缺少ID' }
   await db.collection('articles').doc(id).remove()

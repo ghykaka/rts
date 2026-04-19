@@ -13,6 +13,7 @@
       <view class="trade-no" wx:if="{{item.wechatTradeNo}}">
         <text class="label">微信单号：</text>
         <text class="value">{{item.wechatTradeNo}}</text>
+        <view class="copy-btn" bindtap="copyTradeNo" data-no="{{item.wechatTradeNo}}">复制</view>
       </view>
     </view>
   </view>

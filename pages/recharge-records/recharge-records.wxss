@@ -66,6 +66,7 @@
 
 .trade-no {
   display: flex;
+  align-items: center;
   font-size: 22rpx;
   color: #999;
   padding-top: 12rpx;
@@ -78,6 +79,18 @@
 
 .trade-no .value {
   word-break: break-all;
+  flex: 1;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  padding: 6rpx 16rpx;
+  font-size: 20rpx;
+  color: #999;
+  border: 1rpx solid #ddd;
+  border-radius: 6rpx;
+  background: #fafafa;
 }
 
 .empty {

@@ -21,7 +21,7 @@ exports.main = async (event, context) => {
       case 'update':
         return await update(data)
       case 'delete':
-        return await delete(data)
+        return await deleteCategory(data)
       default:
         return { success: false, error: '未知的操作' }
     }
@@ -86,7 +86,7 @@ async function update(data) {
 }
 
 // 删除分类
-async function delete(data) {
+async function deleteCategory(data) {
   const { id } = data
   if (!id) return { success: false, error: '缺少ID' }
   

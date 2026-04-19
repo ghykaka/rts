@@ -11,38 +11,57 @@ exports.main = async (event, context) => {
   console.log('params:', { page, pageSize, userId, phone, userType, enterpriseName })
 
   try {
-    // 企业用户查询
+    // 企业用户查询：名称模糊匹配 company_name 和 company_short_name
     if (userType === 'enterprise') {
-      const entWhere = {}
+      let baseQuery = db.collection('enterprises')
+      
+      // 构建 OR 条件：企业名称模糊匹配（全称或简称）
+      const nameOrCond = db.command.or(
+        {
+          company_name: enterpriseName 
+            ? db.RegExp({ regexp: enterpriseName, options: 'i' }) 
+            : db.RegExp({ regexp: '.*', options: 's' })
+        },
+        {
+          company_short_name: enterpriseName 
+            ? db.RegExp({ regexp: enterpriseName, options: 'i' }) 
+            : db.RegExp({ regexp: '.*', options: 's' })
+        }
+      )
+      
+      // 如果有 userId，需要将条件合并到每个 or 分支中
+      let whereCondition
       if (userId) {
-        entWhere.admin_user_id = userId
+        whereCondition = db.command.or(
+          {
+            company_name: enterpriseName 
+              ? db.RegExp({ regexp: enterpriseName, options: 'i' }) 
+              : db.RegExp({ regexp: '.*', options: 's' }),
+            admin_user_id: userId
+          },
+          {
+            company_short_name: enterpriseName 
+              ? db.RegExp({ regexp: enterpriseName, options: 'i' }) 
+              : db.RegExp({ regexp: '.*', options: 's' }),
+            admin_user_id: userId
+          }
+        )
+      } else {
+        whereCondition = nameOrCond
       }
-      if (phone) {
-        entWhere.admin_phone = db.RegExp({
-          regexp: phone,
-          options: 'i'
-        })
-      }
-      if (enterpriseName) {
-        entWhere.company_name = db.RegExp({
-          regexp: enterpriseName,
-          options: 'i'
-        })
-      }
+      
+      baseQuery = baseQuery.where(whereCondition)
 
       // 获取企业列表
-      const entCountResult = await db.collection('enterprises')
-        .where(entWhere)
-        .count()
+      const entCountResult = await baseQuery.count()
 
-      const entListResult = await db.collection('enterprises')
-        .where(entWhere)
+      const entListResult = await baseQuery
         .orderBy('create_time', 'desc')
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .get()
 
-      const userList = entListResult.data || []
+      let userList = entListResult.data || []
 
       // 获取每个企业的素材统计和子账号信息
       for (const ent of userList) {
@@ -88,8 +107,10 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 普通用户查询
-    const where = {}
+    // 普通用户查询 - 必须是 user_type = 'personal'
+    const where = {
+      user_type: 'personal'
+    }
 
     if (userId) {
       where._id = userId
@@ -115,7 +136,7 @@ exports.main = async (event, context) => {
       .get()
 
     // 获取素材统计信息
-    const userList = listResult.data || []
+    let userList = listResult.data || []
     if (userList.length > 0) {
       for (const user of userList) {
         // 统计素材数量

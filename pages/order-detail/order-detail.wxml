@@ -1,0 +1,167 @@
+<!--pages/order-detail/order-detail.wxml-->
+<view class="order-detail-container">
+  <!-- 加载中 -->
+  <view class="loading-mask" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+  </view>
+
+  <!-- 订单详情 -->
+  <view class="detail-content" wx:if="{{detail && !loading}}">
+    
+    <!-- 基本信息卡片 -->
+    <view class="info-card">
+      <view class="card-header">
+        <text class="card-title">订单信息</text>
+        <view class="order-status {{getStatusClass(detail.status)}}">
+          <text>{{getStatusText(detail.status)}}</text>
+        </view>
+      </view>
+      
+      <view class="info-item">
+        <text class="info-label">订单号</text>
+        <text class="info-value">{{detail.orderNo || detail.orderId}}</text>
+      </view>
+      
+      <!-- 订单类型 + 功能名称（合并一行） -->
+      <view class="info-item" wx:if="{{detail.serviceType || detail.functionName}}">
+        <text class="info-label">功能名称</text>
+        <text class="info-value">
+          <text class="tag" wx:if="{{detail.serviceType}}">{{detail.serviceType}}</text>
+          <text wx:if="{{detail.functionName}}"> {{detail.functionName}}</text>
+        </text>
+      </view>
+      
+      <!-- 支付金额 + 支付方式 -->
+      <view class="info-item">
+        <text class="info-label">支付金额</text>
+        <text class="info-value price" wx:if="{{detail.costAmount > 0}}">¥{{detail.costAmount}} {{detail.costType}}</text>
+        <text class="info-value" wx:else>免费</text>
+      </view>
+      
+      <!-- 微信支付单号 -->
+      <view class="info-item" wx:if="{{detail.wxOutTradeNo}}">
+        <text class="info-label">支付单号</text>
+        <text class="info-value">{{detail.wxOutTradeNo}}</text>
+      </view>
+      
+      <!-- 开始时间（如果和提交时间不同则显示） -->
+      <view class="info-item" wx:if="{{detail.startedAt && detail.startedAt !== detail.createdAt}}">
+        <text class="info-label">开始时间</text>
+        <text class="info-value">{{detail.startedAt}}</text>
+      </view>
+      
+      <!-- 提交时间（如果开始时间相同或没有开始时间则显示） -->
+      <view class="info-item" wx:if="{{!detail.startedAt || detail.startedAt === detail.createdAt}}">
+        <text class="info-label">开始时间</text>
+        <text class="info-value">{{detail.createdAt || '-'}}</text>
+      </view>
+      
+      <!-- 完成时间 + 用时 -->
+      <view class="info-item" wx:if="{{detail.completedAt}}">
+        <text class="info-label">完成时间</text>
+        <view class="info-value time-row">
+          <text>{{detail.completedAt}}</text>
+          <text class="duration" wx:if="{{detail.duration}}">（用时：{{detail.duration}}）</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 素材信息卡片（模板、用户输入字段） -->
+    <view class="info-card" wx:if="{{detail.template || detail.material || (detail.inputParamsArray && detail.inputParamsArray.length > 0)}}">
+      <view class="card-header">
+        <text class="card-title">素材信息</text>
+      </view>
+      
+      <!-- 模板名称 -->
+      <view class="info-item" wx:if="{{detail.template}}">
+        <text class="info-label">模板名称</text>
+        <text class="info-value">{{detail.template.name || '-'}}</text>
+      </view>
+      
+      <!-- 素材图 -->
+      <view class="info-item" wx:if="{{detail.material && detail.material.url}}">
+        <text class="info-label">素材图</text>
+        <image src="{{detail.material.url}}" class="material-image" mode="widthFix" bindtap="previewImage" data-url="{{detail.material.url}}" />
+      </view>
+      
+      <!-- 素材名称 -->
+      <view class="info-item" wx:if="{{detail.material && detail.material.name}}">
+        <text class="info-label">素材名称</text>
+        <text class="info-value">{{detail.material.name}}</text>
+      </view>
+      
+      <!-- 用户输入参数（只显示工作流配置中映射的字段，如自编文案、价格文案、个人二维码） -->
+      <view class="info-item" wx:for="{{detail.inputParamsArray}}" wx:key="key">
+        <text class="info-label">{{item.key}}</text>
+        <view class="info-value" wx:if="{{item.isImage}}">
+          <image src="{{item.value}}" class="param-image" mode="widthFix" bindtap="previewImage" data-url="{{item.value}}" />
+        </view>
+        <text class="info-value" wx:else>{{item.value}}</text>
+      </view>
+    </view>
+
+    <!-- 生成结果卡片 -->
+    <view class="info-card result-card" wx:if="{{detail.formattedOutputs && detail.formattedOutputs.length > 0}}">
+      <view class="card-header">
+        <text class="card-title">生成结果</text>
+      </view>
+      
+      <view class="output-list">
+        <view class="output-item" wx:for="{{detail.formattedOutputs}}" wx:key="index">
+          <view class="output-header">
+            <text class="output-name">{{item.fieldName}}</text>
+            <view class="output-actions">
+              <text class="action-btn" wx:if="{{item.downloadable}}" bindtap="downloadImage" data-url="{{item.value}}" data-type="{{item.fieldType}}">下载</text>
+              <text class="action-btn" wx:if="{{item.copyable}}" bindtap="copyText" data-text="{{item.value}}">复制</text>
+            </view>
+          </view>
+          
+          <!-- 图片类型 -->
+          <view wx:if="{{item.fieldType === 'image'}}" class="output-image-wrap">
+            <image
+              src="{{item.value}}"
+              class="output-image"
+              mode="widthFix"
+              bindtap="previewImage"
+              data-url="{{item.value}}"
+            />
+          </view>
+
+          <!-- 视频类型 -->
+          <view wx:elif="{{item.fieldType === 'video'}}" class="output-video-wrap">
+            <video
+              src="{{item.value}}"
+              class="output-video"
+              controls
+              show-center-play-btn
+              enable-progress-gesture
+            />
+          </view>
+
+          <!-- 文本类型 -->
+          <view wx:else class="output-text">
+            <text>{{item.value}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 生成中提示 -->
+    <view class="processing-tip" wx:if="{{detail.status === 'processing'}}">
+      <view class="tip-spinner"></view>
+      <text>正在生成中，请稍候...</text>
+    </view>
+
+    <!-- 失败提示 -->
+    <view class="error-tip" wx:if="{{detail.status === 'failed'}}">
+      <text class="error-title">生成失败</text>
+      <text class="error-desc">{{detail.errorMsg || '未知错误'}}</text>
+      <button class="retry-btn" bindtap="loadOrderDetail">重新加载</button>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!detail && !loading}}">
+    <text>订单不存在</text>
+  </view>
+</view>
