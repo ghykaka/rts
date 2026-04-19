@@ -6,6 +6,8 @@ Page({
     userInfo: null,
     isLogin: false,
     displayBalance: '0.00',
+    displayEnterpriseBalance: '0.00',  // 企业子账户余额
+    isSubAccount: false,  // 是否是企业子账户
     // 首页配置组件
     homeConfigs: [],
     loading: false
@@ -36,10 +38,13 @@ Page({
     const userInfo = wx.getStorageSync('userInfo')
 
     if (userId && userInfo) {
+      const isSubAccount = userInfo.role === 'subaccount'
       this.setData({
         userInfo: userInfo,
         isLogin: true,
-        displayBalance: ((userInfo.balance || 0) / 100).toFixed(2)
+        displayBalance: ((userInfo.balance || 0) / 100).toFixed(2),
+        displayEnterpriseBalance: ((userInfo.enterprise_balance || 0) / 100).toFixed(2),
+        isSubAccount: isSubAccount
       })
     }
   },
@@ -108,10 +113,13 @@ Page({
         wx.setStorageSync('userInfo', userInfo)
         app.globalData.userInfo = userInfo
         
+        const isSubAccount = userInfo.role === 'subaccount'
         this.setData({
           userInfo: userInfo,
           isLogin: true,
-          displayBalance: ((userInfo.balance || 0) / 100).toFixed(2)
+          displayBalance: ((userInfo.balance || 0) / 100).toFixed(2),
+          displayEnterpriseBalance: ((userInfo.enterprise_balance || 0) / 100).toFixed(2),
+          isSubAccount: isSubAccount
         })
       } else {
         this.setData({

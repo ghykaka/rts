@@ -52,26 +52,31 @@ exports.main = async (event, context) => {
       userData.enterprise_id = enterpriseInfo._id
       userData.admin_user_id = enterpriseInfo.admin_user_id || ''  // 企业管理员ID
       
-      // 如果是管理员，使用企业总余额；如果是子账户，使用分配给他的额度
-      if (userData.role === 'admin') {
-        userData.enterprise_balance = enterpriseInfo.balance || 0  // 管理员：企业总余额
-      } else {
-        // 子账户：从 enterprise_sub_accounts 获取分配额度
-        try {
-          const subRes = await db.collection('enterprise_sub_accounts')
-            .where({ 
-              enterprise_id: enterpriseInfo._id,
-              user_id: userId
-            })
-            .get()
-          if (subRes.data && subRes.data.length > 0) {
-            userData.enterprise_balance = subRes.data[0].balance || 0  // 子账户：分配额度
-          } else {
-            userData.enterprise_balance = 0
-          }
-        } catch (e) {
-          userData.enterprise_balance = 0
+      // 直接检查 enterprise_sub_accounts 表来确定是否是子账户
+      let isSubAccount = false
+      try {
+        const subRes = await db.collection('enterprise_sub_accounts')
+          .where({ 
+            enterprise_id: enterpriseInfo._id,
+            user_id: userId,
+            status: 'active'
+          })
+          .limit(1)
+          .get()
+        isSubAccount = subRes.data && subRes.data.length > 0
+        
+        if (isSubAccount) {
+          // 子账户：使用分配给他的额度
+          userData.enterprise_balance = subRes.data[0].balance || 0
+          userData.role = 'subaccount'  // 确保 role 字段正确
+        } else {
+          // 管理员：使用企业总余额
+          userData.enterprise_balance = enterpriseInfo.balance || 0
+          userData.role = userData.admin_user_id === userId ? 'admin' : 'member'
         }
+      } catch (e) {
+        console.error('检查子账户失败:', e)
+        userData.enterprise_balance = enterpriseInfo.balance || 0
       }
     }
 

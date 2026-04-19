@@ -15,6 +15,7 @@
           <view class="info">
             <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
             <text class="balance">余额：¥{{displayBalance}}</text>
+            <text class="balance" wx:if="{{isSubAccount}}">企业额度：¥{{displayEnterpriseBalance}}</text>
           </view>
         </view>
         <view class="recharge-btn" catchtap="goRecharge">
