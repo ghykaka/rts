@@ -205,7 +205,7 @@
   </view>
 
   <!-- 加载更多 -->
-  <view wx:if="{{hasMore && !loading && products.length > 0}}" class="load-more" bindtap="onReachBottom">
+  <view wx:if="{{hasMore && !loading && products.length > 0}}" class="load-more" bindtap="loadMore">
     <text>加载更多</text>
   </view>
 
