@@ -204,9 +204,9 @@
     <text>加载中...</text>
   </view>
 
-  <!-- 加载更多 -->
-  <view wx:if="{{hasMore && !loading && products.length > 0}}" class="load-more" bindtap="loadMore">
-    <text>加载更多</text>
+  <!-- 加载中提示 -->
+  <view wx:if="{{loading && products.length > 0}}" class="loading-more">
+    <text>加载中...</text>
   </view>
 
   <!-- 底部按钮 -->
