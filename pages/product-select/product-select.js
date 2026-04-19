@@ -446,14 +446,15 @@ Page({
         .count()
       console.log('Total count:', countRes.total)
       
+      // 使用更大的 limit 绕过数据库 20 条限制
       const res = await db.collection('materials')
         .where(whereCondition)
         .orderBy('create_time', 'desc')
         .skip((this.data.page - 1) * this.data.pageSize)
-        .limit(this.data.pageSize)
+        .limit(100)  // 使用更大的值
         .get()
 
-      console.log('DB raw result:', JSON.stringify(res).substring(0, 500))
+      console.log('DB raw result count:', res.data ? res.data.length : 0)
       let newProducts = res.data || []
       console.log('Parsed newProducts:', newProducts.length)
       console.log('loadProducts result:', { 
