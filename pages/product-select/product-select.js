@@ -381,86 +381,45 @@ Page({
       this.setData({ loading: true })
     }
 
-    const db = wx.cloud.database()
-
     try {
       const userInfo = wx.getStorageSync('userInfo')
       const userId = wx.getStorageSync('userId')
 
-      // 根据素材库类型确定查询条件
-      // 企业素材优先用 enterprise_id 查询（兼容：同时用 user_id）
-      let whereCondition = {}
-      if (this.data.materialLibType === 'enterprise') {
-        const enterpriseId = userInfo.enterprise_id
-        console.log('loadProducts - enterpriseId:', enterpriseId)
-        if (enterpriseId) {
-          // 企业素材：优先用 enterprise_id，也兼容只有 user_id 的旧数据
-          whereCondition = {
-            user_type: 'enterprise',
-            $or: [
-              { enterprise_id: enterpriseId },
-              { user_id: userId }  // 兼容旧数据
-            ]
-          }
-        } else {
-          // 兼容旧数据：用 user_id 查询
-          whereCondition = {
-            user_type: 'enterprise',
-            user_id: userId
-          }
-        }
-      } else {
-        // 个人素材
-        whereCondition = {
-          user_type: 'personal',
-          user_id: userId
-        }
+      // 构建查询参数
+      const params = {
+        userType: this.data.materialLibType,
+        userId: userId,
+        enterpriseId: userInfo.enterprise_id || '',
+        page: this.data.page,
+        pageSize: this.data.pageSize
       }
 
-      console.log('loadProducts - whereCondition:', JSON.stringify(whereCondition))
-      console.log('loadProducts - currentPrimaryCategory:', this.data.currentPrimaryCategory)
-      console.log('loadProducts - currentPrimaryId:', this.data.currentPrimaryId)
-
-      // 如果选择了二级分类，按二级分类筛选
+      // 如果选择了二级分类
       if (this.data.currentSecondaryCategory) {
-        whereCondition.category2_id = this.data.currentSecondaryCategory
-      } else if (this.data.currentPrimaryId && this.data.currentPrimaryId !== '') {
-        // 如果选择了一级分类，按该分类下的所有二级分类筛选
-        const subCategoryList = this.data.subCategoryMap[this.data.currentPrimaryId] || []
-        if (subCategoryList.length > 0) {
-          const subIds = subCategoryList.map(c => c._id)
-          whereCondition.category2_id = db.command.in(subIds)
-        }
+        params.category2Id = this.data.currentSecondaryCategory
       }
 
-      console.log('loadProducts query:', { 
-        page: this.data.page, 
-        skip: (this.data.page - 1) * this.data.pageSize,
-        pageSize: this.data.pageSize,
-        materialLibType: this.data.materialLibType
-      })
-      
-      // 先查询总数
-      const countRes = await db.collection('materials')
-        .where(whereCondition)
-        .count()
-      console.log('Total count:', countRes.total)
-      
-      // 使用更大的 limit 绕过数据库 20 条限制
-      const res = await db.collection('materials')
-        .where(whereCondition)
-        .orderBy('create_time', 'desc')
-        .skip((this.data.page - 1) * this.data.pageSize)
-        .limit(100)  // 使用更大的值
-        .get()
+      console.log('loadProducts calling cloud function:', params)
 
-      console.log('DB raw result count:', res.data ? res.data.length : 0)
-      let newProducts = res.data || []
-      console.log('Parsed newProducts:', newProducts.length)
-      console.log('loadProducts result:', { 
+      // 调用云函数获取素材
+      const res = await wx.cloud.callFunction({
+        name: 'getMaterials',
+        data: params
+      })
+
+      console.log('loadProducts result:', res.result)
+
+      if (!res.result || !res.result.success) {
+        throw new Error(res.result?.error || '获取素材失败')
+      }
+
+      let newProducts = res.result.data || []
+      const total = res.result.total || 0
+
+      console.log('loadProducts:', { 
         newCount: newProducts.length,
-        totalProducts: this.data.products.length + newProducts.length,
-        hasMore: newProducts.length >= this.data.pageSize
+        total,
+        page: this.data.page
       })
 
       // 获取云存储临时URL（同时获取原图和缩略图）
@@ -525,13 +484,17 @@ Page({
       // 分列到瀑布流
       const columns = this.distributeToColumns(allProducts)
 
+      // 根据总数和当前已加载数量判断是否还有更多
+      const loadedCount = allProducts.length
+      const hasMore = loadedCount < total
+
       this.setData({
         products: allProducts,
         ...columns,
-        hasMore: newProducts.length >= this.data.pageSize,
+        hasMore: hasMore,
         loading: false
       })
-      console.log('hasMore set to:', newProducts.length >= this.data.pageSize)
+      console.log('hasMore set to:', hasMore, 'loadedCount:', loadedCount, 'total:', total)
     } catch (err) {
       console.error('loadProducts error:', err)
       this.setData({ loading: false })
