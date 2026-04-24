@@ -102,11 +102,46 @@ exports.main = async (event, context) => {
       userId = addRes._id
     }
 
-    // 4. 获取完整用户信息
+    // 4. 检查是否为预添加的企业子账号并自动激活关联
+    console.log('Checking subaccount for phone:', phoneNumber)
+    if (phoneNumber) {
+      try {
+        const subRes = await db.collection('enterprise_sub_accounts')
+          .where({ phone: phoneNumber, status: 'pending' })
+          .limit(1)
+          .get()
+        
+        console.log('Subaccount query result:', JSON.stringify(subRes))
+        
+        if (subRes.data && subRes.data.length > 0) {
+          const subAccount = subRes.data[0]
+          console.log('Found subaccount:', JSON.stringify(subAccount))
+          // 更新子账号记录：激活并关联用户ID
+          await db.collection('enterprise_sub_accounts').doc(subAccount._id).update({
+            data: { status: 'active', user_id: userId, updated_at: new Date() }
+          })
+          // 更新用户记录：关联企业ID和身份（子账号也是企业用户）
+          await db.collection('users').doc(userId).update({
+            data: { 
+              enterprise_id: subAccount.enterprise_id,
+              user_type: 'enterprise',
+              role: 'subaccount'
+            }
+          })
+          console.log('Subaccount activated successfully')
+        } else {
+          console.log('No pending subaccount found for this phone')
+        }
+      } catch (subErr) {
+        console.error('subaccount activation error:', subErr)
+      }
+    }
+
+    // 5. 获取完整用户信息
     const userInfoRes = await db.collection('users').doc(userId).get()
     const userInfo = userInfoRes.data
 
-    // 5. 返回用户信息（不包含敏感字段）
+    // 6. 返回用户信息（不包含敏感字段）
     return {
       success: true,
       data: {

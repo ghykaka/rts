@@ -73,7 +73,7 @@
 
     <!-- 价格 -->
     <view class="price-info" wx:if="{{selectedPrice}}">
-      <text class="price">¥{{selectedPrice.balance_price / 100}}</text>
+      <text class="price">{{selectedPrice.balance_price}}积分</text>
     </view>
 
     <!-- 生成按钮 -->

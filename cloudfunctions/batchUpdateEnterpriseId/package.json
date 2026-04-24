@@ -1,0 +1,9 @@
+{
+  "name": "batchUpdateEnterpriseId",
+  "version": "1.0.0",
+  "description": "批量更新企业素材的enterprise_id字段",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

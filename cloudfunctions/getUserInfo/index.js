@@ -16,24 +16,83 @@ exports.main = async (event, context) => {
       return { success: false, error: '用户不存在' }
     }
 
-    // 如果是企业用户，获取企业信息
+    const userData = userRes.data
+    
+    // 先直接查询子账户表（和 loginWithPhone 一样的逻辑）
+    const phone = userData.phone
+    let isSubAccount = false
+    let subAccountBalance = 0
+    
+    console.log('userData.enterprise_id=', userData.enterprise_id, 'phone=', phone)
+    
+    if (phone) {
+      try {
+        const subRes = await db.collection('enterprise_sub_accounts')
+          .where({ phone: phone })
+          .limit(1)
+          .get()
+        
+        console.log('子账户查询结果:', JSON.stringify(subRes))
+        
+        if (subRes.data && subRes.data.length > 0) {
+          isSubAccount = true
+          subAccountBalance = subRes.data[0].balance || 0
+          userData.role = 'subaccount'
+          console.log('是子账户, balance=', subAccountBalance)
+        }
+      } catch (e) {
+        console.error('查询子账户失败:', e)
+      }
+    }
+    
+    // 尝试多种方式获取企业信息
     let enterpriseInfo = null
-    if (userRes.data.user_type === 'enterprise' && userRes.data.industry) {
-      const entRes = await db.collection('enterprises').where({
-        owner_user_id: userId
-      }).get()
+    
+    // 方式1：通过 enterprise_id 查询
+    if (userData.enterprise_id && userData.enterprise_id !== '') {
+      try {
+        const entRes = await db.collection('enterprises').doc(userData.enterprise_id).get()
+        if (entRes.data) {
+          enterpriseInfo = entRes.data
+        }
+      } catch (e) {}
+    }
+    
+    // 方式2：通过 admin_user_id 查询
+    if (!enterpriseInfo) {
+      try {
+        const entRes = await db.collection('enterprises')
+          .where({ admin_user_id: userId })
+          .get()
+        if (entRes.data && entRes.data.length > 0) {
+          enterpriseInfo = entRes.data[0]
+        }
+      } catch (e) {}
+    }
+    
+    console.log('enterpriseInfo=', enterpriseInfo ? '找到' : '未找到')
+    
+    // 如果找到企业信息，更新用户数据
+    if (enterpriseInfo) {
+      userData.user_type = 'enterprise'
+      userData.company_name = enterpriseInfo.company_name
+      userData.company_short_name = enterpriseInfo.company_short_name
+      userData.industry = enterpriseInfo.industry
+      userData.enterprise_id = enterpriseInfo._id
+      userData.admin_user_id = enterpriseInfo.admin_user_id || ''
       
-      if (entRes.data && entRes.data.length > 0) {
-        enterpriseInfo = entRes.data[0]
+      // 根据是否是子账户决定余额
+      if (isSubAccount) {
+        userData.enterprise_balance = subAccountBalance
+      } else {
+        userData.enterprise_balance = enterpriseInfo.balance || 0
+        userData.role = userData.admin_user_id === userId ? 'admin' : 'member'
       }
     }
 
     return {
       success: true,
-      data: {
-        ...userRes.data,
-        enterpriseInfo: enterpriseInfo
-      }
+      data: userData
     }
 
   } catch (err) {

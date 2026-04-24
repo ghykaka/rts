@@ -11,6 +11,7 @@ Page({
     failedCount: 0,
     loading: false,
     page: 1,
+    pageSize: 10,
     hasMore: true
   },
 
@@ -19,7 +20,6 @@ Page({
   },
 
   onShow() {
-    // 每次显示都刷新订单,特别是生成中的任务
     this.refreshOrders()
   },
 
@@ -28,7 +28,7 @@ Page({
     this.setData({ page: 1, orderList: [] })
     await this.loadOrders()
 
-    // 如果有生成中的订单,定时刷新
+    // 如果有生成中的订单，定时刷新
     if (this.data.pendingCount > 0) {
       this.startAutoRefresh()
     }
@@ -36,17 +36,14 @@ Page({
 
   // 开始自动刷新
   startAutoRefresh() {
-    // 清除之前的定时器
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer)
     }
 
-    // 每5秒刷新一次
     this.refreshTimer = setInterval(() => {
       if (this.data.pendingCount > 0) {
         this.refreshOrders()
       } else {
-        // 没有生成中的订单了,停止刷新
         this.stopAutoRefresh()
       }
     }, 5000)
@@ -61,8 +58,44 @@ Page({
   },
 
   onUnload() {
-    // 页面卸载时清除定时器
     this.stopAutoRefresh()
+  },
+
+  // 解析输出结果获取所有图片
+  parseOutputImages(outputResult, workflowProductId) {
+    if (!outputResult) return []
+    
+    let data = outputResult
+    // 如果是字符串，尝试解析
+    if (typeof outputResult === 'string') {
+      try {
+        data = JSON.parse(outputResult)
+      } catch (e) {
+        // 如果是直接URL
+        if (outputResult.startsWith('http')) {
+          return [outputResult]
+        }
+        return []
+      }
+    }
+    
+    const imageUrls = []
+    
+    // 优先从 data 字段获取（Coze API 返回格式）
+    const resultData = data.data || data
+    
+    // 如果是对象，遍历所有值
+    if (typeof resultData === 'object' && resultData !== null) {
+      for (const key of Object.keys(resultData)) {
+        const value = resultData[key]
+        // 收集所有 http 开头的值
+        if (value && typeof value === 'string' && value.startsWith('http')) {
+          imageUrls.push(value)
+        }
+      }
+    }
+    
+    return imageUrls
   },
 
   // 切换Tab
@@ -79,7 +112,6 @@ Page({
   // 加载订单
   async loadOrders() {
     const userId = wx.getStorageSync('userId')
-    console.log('loadOrders - userId:', userId)
 
     if (!userId) {
       this.setData({ orderList: [] })
@@ -90,50 +122,51 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const db = wx.cloud.database()
-      const statusFilter = this.getStatusFilter()
-
-      console.log('loadOrders - statusFilter:', statusFilter)
-
-      // 构建查询条件
-      const query = {
-        user_id: userId
-      }
-
-      // 如果有状态筛选,添加状态条件
-      if (statusFilter) {
-        query.status = statusFilter
-      }
-
-      console.log('loadOrders - query:', query)
-
-      // 查询订单
-      const res = await db.collection('orders')
-        .where(query)
-        .orderBy('create_time', 'desc')
-        .limit(20)
-        .get()
-
-      const orders = res.data || []
-      console.log('loadOrders - 查询到订单数量:', orders.length)
-      console.log('loadOrders - 订单数据:', orders)
-
-      // 格式化订单数据
-      const formattedOrders = orders.map(order => {
-        return {
-          ...order,
-          displayPrice: ((order.balance_price || 0) / 100).toFixed(2),
-          displayTime: this.formatTime(order.create_time)
+      const res = await wx.cloud.callFunction({
+        name: 'getUserOrders',
+        data: {
+          userId,
+          page: this.data.page,
+          pageSize: this.data.pageSize,
+          status: this.getStatusFilter()
         }
       })
 
-      // 统计各状态数量
-      this.countOrders(formattedOrders)
+      const result = res.result || {}
 
-      this.setData({
-        orderList: formattedOrders,
-        hasMore: false
-      })
+      if (result.success) {
+        const orders = result.data || []
+        
+        // 格式化订单数据
+        const formattedOrders = orders.map(order => {
+          // 解析 outputResult 获取图片列表
+          const imageUrls = this.parseOutputImages(order.outputResult, order.outputResult)
+          
+          return {
+            ...order,
+            costAmount: order.costAmount,  // 单位已是元
+            statusClass: this.getStatusClass(order.status),
+            statusText: this.getStatusText(order.status),
+            previewImages: imageUrls,  // 图片列表
+            previewCount: imageUrls.length  // 图片数量
+          }
+        })
+
+        // 统计各状态数量（全部时）
+        if (this.data.currentTab === 0) {
+          this.countOrders(orders)
+        }
+
+        // 合并数据（分页）
+        const newList = this.data.page === 1 
+          ? formattedOrders 
+          : [...this.data.orderList, ...formattedOrders]
+
+        this.setData({
+          orderList: newList,
+          hasMore: result.hasMore
+        })
+      }
     } catch (err) {
       console.error('loadOrders error:', err)
     } finally {
@@ -145,7 +178,7 @@ Page({
   countOrders(orders) {
     let pending = 0, completed = 0, failed = 0
     orders.forEach(order => {
-      if (order.status === 'generating') pending++
+      if (order.status === 'pending' || order.status === 'processing') pending++
       else if (order.status === 'completed') completed++
       else if (order.status === 'failed') failed++
     })
@@ -160,79 +193,51 @@ Page({
   getStatusFilter() {
     const map = {
       0: '', // 全部
-      1: 'generating', // 生成中
+      1: 'processing', // 生成中
       2: 'completed', // 已完成
       3: 'failed' // 失败
     }
     return map[this.data.currentTab]
   },
 
-  // 获取Tab徽章数量
-  getTabBadge(index) {
-    if (index === 1) return this.data.pendingCount
-    if (index === 2) return this.data.completedCount
-    if (index === 3) return this.data.failedCount
-    return 0
+  // 获取状态样式
+  getStatusClass(status) {
+    const map = {
+      'pending': 'status-pending',
+      'processing': 'status-processing',
+      'completed': 'status-completed',
+      'failed': 'status-failed'
+    }
+    return map[status] || 'status-default'
   },
 
-  // 格式化时间
-  formatTime(timeStr) {
-    if (!timeStr) return ''
-
-    console.log('formatTime - timeStr:', timeStr)
-
-    // 如果是 Date 对象或服务器时间对象
-    let date
-    if (timeStr.$date) {
-      date = new Date(timeStr.$date)
-    } else {
-      date = new Date(timeStr)
+  // 获取状态文本
+  getStatusText(status) {
+    const map = {
+      'pending': '等待处理',
+      'processing': '生成中',
+      'completed': '已完成',
+      'failed': '生成失败'
     }
-
-    console.log('formatTime - date:', date)
-
-    const now = new Date()
-
-    // 如果是今天
-    if (date.toDateString() === now.toDateString()) {
-      const hours = date.getHours().toString().padStart(2, '0')
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      const result = `今天 ${hours}:${minutes}`
-      console.log('formatTime - result:', result)
-      return result
-    }
-
-    // 如果是昨天
-    const yesterday = new Date(now)
-    yesterday.setDate(yesterday.getDate() - 1)
-    if (date.toDateString() === yesterday.toDateString()) {
-      const hours = date.getHours().toString().padStart(2, '0')
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      return `昨天 ${hours}:${minutes}`
-    }
-
-    // 其他日期
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    return `${month}-${day}`
+    return map[status] || '未知'
   },
 
   // 查看订单详情
   viewOrderDetail(e) {
-    const item = e.currentTarget.dataset.item
+    const { orderid } = e.currentTarget.dataset
 
-    // 如果是已完成且有输出URL,可以预览图片
-    if (item.status === 'completed' && item.output_url) {
-      wx.previewImage({
-        current: item.output_url,
-        urls: [item.output_url]
-      })
-    }
+    wx.navigateTo({
+      url: `/pages/order-detail/order-detail?orderId=${orderid}`
+    })
   },
 
   // 下载作品
-  downloadFile(url) {
-    if (!url) return
+  downloadFile(e) {
+    const { url } = e.currentTarget.dataset
+    if (!url) {
+      wx.showToast({ title: '暂无作品', icon: 'none' })
+      return
+    }
 
     wx.showLoading({ title: '下载中...' })
 
@@ -263,6 +268,22 @@ Page({
       },
       fail: () => {
         wx.showToast({ title: '下载失败', icon: 'none' })
+      }
+    })
+  },
+
+  // 复制文案
+  copyText(e) {
+    const { text } = e.currentTarget.dataset
+    if (!text) {
+      wx.showToast({ title: '暂无文案', icon: 'none' })
+      return
+    }
+
+    wx.setClipboardData({
+      data: text,
+      success: () => {
+        wx.showToast({ title: '已复制', icon: 'success' })
       }
     })
   },

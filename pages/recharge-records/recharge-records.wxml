@@ -1,0 +1,40 @@
+<view class="container">
+  <!-- 列表 -->
+  <view class="list" wx:if="{{records.length > 0}}">
+    <view class="item" wx:for="{{records}}" wx:key="id">
+      <view class="item-top">
+        <view class="amount {{item.paymentPurpose === 'generate' ? 'generate' : ''}}">
+          {{item.paymentPurpose === 'generate' ? '¥' : '+'}}{{item.amount}}{{item.paymentPurpose === 'generate' ? '' : '元'}}
+        </view>
+        <view class="status {{item.status === '成功' ? 'success' : 'pending'}}">{{item.status}}</view>
+      </view>
+      <view class="item-bottom">
+        <view class="type">
+          {{item.paymentPurpose === 'generate' ? '购买服务' : item.type}}
+        </view>
+        <view class="time">{{item.paidAt || item.createdAt}}</view>
+      </view>
+      <view class="trade-no" wx:if="{{item.wechatTradeNo}}">
+        <text class="label">微信单号：</text>
+        <text class="value">{{item.wechatTradeNo}}</text>
+        <view class="copy-btn" bindtap="copyTradeNo" data-no="{{item.wechatTradeNo}}">复制</view>
+      </view>
+    </view>
+
+    <!-- 加载更多提示 -->
+    <view class="load-more" wx:if="{{records.length > 0}}">
+      <text wx:if="{{loadingMore}}">加载中...</text>
+      <text wx:elif="{{!hasMore}}">没有更多了</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:elif="{{!loading}}">
+    <text>暂无支付记录</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>

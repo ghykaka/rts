@@ -6,10 +6,16 @@ Page({
     isLogin: false,
     userInfo: null,
     balance: 0,
-    displayBalance: '0.00',
+    displayBalance: '0',  // 积分直接显示
     currentMode: 'personal', // 当前模式：personal 或 enterprise
-    personalBalance: '0.00', // 个人余额
-    enterpriseBalance: '0.00' // 企业余额
+    personalBalance: '0', // 个人积分
+    enterpriseBalance: '0', // 企业积分
+    userTypeText: '登录后享受更多功能', // 用户类型文本
+    hasEnterprise: false, // 是否有企业账号
+    currentBalance: '0', // 当前显示的积分
+    rechargeButtonText: '充值', // 充值按钮文字
+    isEnterpriseAdmin: false, // 是否是企业管理员
+    balanceLabel: '个人积分' // 余额标签（带企业简称或昵称）
   },
 
   onLoad() {
@@ -23,29 +29,63 @@ Page({
   checkLogin() {
     const userId = wx.getStorageSync('userId')
     const userInfo = wx.getStorageSync('userInfo')
+    console.log('checkLogin:', { userId, userInfo })
 
     if (userId && userInfo) {
       const savedMode = wx.getStorageSync('currentMode') || 'personal'
+      // 同时检查 user_type 和 enterprise_id
+      const hasEnterprise = userInfo.user_type === 'enterprise' || userInfo.enterprise_id
+      // 企业管理员判断：必须有企业账号且角色是 admin
+      const isEnterpriseAdmin = hasEnterprise && userInfo.role === 'admin'
+      // 充值按钮文字
+      const rechargeButtonText = this.getRechargeButtonText(savedMode, isEnterpriseAdmin)
+      
       this.setData({
         isLogin: true,
         userInfo: userInfo,
-        currentMode: savedMode
+        currentMode: savedMode,
+        hasEnterprise: hasEnterprise,
+        isEnterpriseAdmin: isEnterpriseAdmin,
+        userTypeText: this.getUserTypeText(userInfo, savedMode),
+        currentBalance: String(userInfo.balance || 0),  // 积分直接显示
+        rechargeButtonText: rechargeButtonText
       })
       this.setBalances(userInfo, savedMode)
     } else {
-      this.setData({ isLogin: false })
+      this.setData({ isLogin: false, userTypeText: '登录后享受更多功能', rechargeButtonText: '充值' })
     }
+  },
+  
+  // 获取充值按钮文字
+  getRechargeButtonText(mode, isAdmin) {
+    if (!isAdmin) {
+      return '充值'
+    }
+    return mode === 'enterprise' ? '企业账户充值' : '个人账户充值'
+  },
+  
+  // 获取用户类型文本
+  getUserTypeText(userInfo, mode) {
+    if (mode === 'enterprise') {
+      return userInfo.company_short_name || userInfo.company_name || '企业会员'
+    }
+    return '普通会员'
   },
 
   async getUserInfo() {
     const userId = wx.getStorageSync('userId')
-    if (!userId) return
+    if (!userId) {
+      console.log('getUserInfo: no userId')
+      return
+    }
 
     try {
+      console.log('getUserInfo: calling cloud function...')
       const res = await wx.cloud.callFunction({
         name: 'getUserInfo',
         data: { userId }
       })
+      console.log('getUserInfo result:', res)
 
       if (res.result && res.result.success) {
         const user = res.result.data
@@ -53,29 +93,56 @@ Page({
         wx.setStorageSync('userInfo', user)
         app.globalData.userInfo = user
         
+        // 同时检查 user_type 和 enterprise_id
+        const hasEnterprise = user.user_type === 'enterprise' || user.enterprise_id
+        const isEnterpriseAdmin = hasEnterprise && user.role === 'admin'
+        const rechargeButtonText = this.getRechargeButtonText(this.data.currentMode, isEnterpriseAdmin)
+        
         this.setData({
           userInfo: user,
-          isLogin: true
+          isLogin: true,
+          hasEnterprise: hasEnterprise,
+          isEnterpriseAdmin: isEnterpriseAdmin,
+          userTypeText: this.getUserTypeText(user, this.data.currentMode),
+          currentBalance: String(user.balance || 0),  // 积分直接显示
+          rechargeButtonText: rechargeButtonText
         })
         this.setBalances(user, this.data.currentMode)
+      } else {
+        console.log('getUserInfo failed:', res.result?.error)
       }
     } catch (err) {
       console.error('getUserInfo error:', err)
+      // 即使出错也不影响页面显示
     }
   },
 
-  // 设置余额显示
+  // 设置余额显示（积分）
   setBalances(userInfo, mode) {
     if (!userInfo) return
 
-    // 统一使用 balance 字段
-    const balance = userInfo.balance || 0
+    // 区分个人积分和企业积分
+    const personalBalance = userInfo.balance || 0
+    const enterpriseBalance = userInfo.enterprise_balance || 0
+    
+    // 根据模式决定显示哪个积分
+    const currentBalance = mode === 'enterprise' ? enterpriseBalance : personalBalance
+    
+    // 余额标签：我的积分额度-企业简称 / 个人积分-用户昵称
+    let balanceLabel = '个人积分'
+    if (mode === 'enterprise') {
+      balanceLabel = '我的积分额度 - ' + (userInfo.company_short_name || userInfo.company_name || '')
+    } else {
+      balanceLabel = '个人积分 - ' + (userInfo.nickname || '微信用户')
+    }
 
     this.setData({
-      balance: balance,
-      displayBalance: (balance / 100).toFixed(2),
-      enterpriseBalance: (balance / 100).toFixed(2),
-      personalBalance: (balance / 100).toFixed(2)
+      balance: personalBalance,
+      displayBalance: String(personalBalance),  // 积分直接显示
+      enterpriseBalance: String(enterpriseBalance),  // 积分直接显示
+      personalBalance: String(personalBalance),  // 积分直接显示
+      currentBalance: String(currentBalance),  // 积分直接显示
+      balanceLabel: balanceLabel
     })
   },
 
@@ -86,13 +153,29 @@ Page({
       return
     }
 
-    this.setData({ currentMode: 'enterprise' })
+    const enterpriseBalance = this.data.userInfo.enterprise_balance || 0
+    const balanceLabel = '我的积分额度 - ' + (this.data.userInfo.company_short_name || this.data.userInfo.company_name || '')
+    this.setData({ 
+      currentMode: 'enterprise',
+      userTypeText: this.getUserTypeText(this.data.userInfo, 'enterprise'),
+      currentBalance: String(enterpriseBalance),  // 积分直接显示
+      balanceLabel: balanceLabel,
+      rechargeButtonText: this.getRechargeButtonText('enterprise', this.data.isEnterpriseAdmin)
+    })
     wx.setStorageSync('currentMode', 'enterprise')
   },
 
   // 切换到个人模式
   switchToPersonal() {
-    this.setData({ currentMode: 'personal' })
+    const personalBalance = this.data.userInfo.balance || 0
+    const balanceLabel = '个人积分 - ' + (this.data.userInfo.nickname || '微信用户')
+    this.setData({ 
+      currentMode: 'personal',
+      userTypeText: this.getUserTypeText(this.data.userInfo, 'personal'),
+      currentBalance: String(personalBalance),  // 积分直接显示
+      balanceLabel: balanceLabel,
+      rechargeButtonText: this.getRechargeButtonText('personal', this.data.isEnterpriseAdmin)
+    })
     wx.setStorageSync('currentMode', 'personal')
   },
 
@@ -105,19 +188,27 @@ Page({
 
   // 跳转充值
   goRecharge() {
+    // 传递当前模式给充值页面
     wx.navigateTo({
-      url: `/pages/recharge/recharge`
+      url: `/pages/recharge/recharge?mode=${this.data.currentMode}`
+    })
+  },
+
+  // 跳转充值记录
+  goRechargeRecords() {
+    wx.navigateTo({
+      url: '/pages/recharge-records/recharge-records'
     })
   },
 
   // 跳转个人素材库
   goPersonalMaterials() {
-    wx.navigateTo({ url: '/pages/materials/materials?type=personal' })
+    wx.navigateTo({ url: '/pages/materials/materials' })
   },
 
   // 跳转企业素材库
   goEnterpriseMaterials() {
-    wx.navigateTo({ url: '/pages/materials/materials?type=enterprise' })
+    wx.navigateTo({ url: '/pages/enterprise-materials/enterprise-materials' })
   },
 
   // 跳转企业注册
@@ -130,7 +221,23 @@ Page({
     wx.navigateTo({ url: '/pages/sub-accounts/sub-accounts' })
   },
 
-  // 临时方法：更新企业账号余额为50元
+  // 跳转咨询客服（文章页面）
+  goToCustomerService() {
+    const articleId = '391fc5be69ddf746003b30a63faf9ef0'
+    wx.navigateTo({
+      url: `/pages/article-detail/article-detail?id=${articleId}`
+    })
+  },
+
+  // 跳转关于我们（文章页面）
+  goToAboutUs() {
+    const articleId = 'd3a1add769d61c2c002fd943466c9fce'
+    wx.navigateTo({
+      url: `/pages/article-detail/article-detail?id=${articleId}`
+    })
+  },
+
+  // 临时方法：更新企业账号余额为5000积分
   async updateBalanceTo50() {
     try {
       const db = wx.cloud.database()
@@ -159,11 +266,11 @@ Page({
 
       this.setData({
         balance: 5000,
-        displayBalance: '50.00'
+        displayBalance: '5000'
       })
 
       wx.hideLoading()
-      wx.showToast({ title: '余额已更新为50元', icon: 'success' })
+      wx.showToast({ title: '积分已更新为5000', icon: 'success' })
     } catch (err) {
       console.error('更新余额失败:', err)
       wx.hideLoading()
@@ -188,7 +295,10 @@ Page({
           this.setData({
             isLogin: false,
             userInfo: null,
-            currentMode: 'personal'
+            currentMode: 'personal',
+            userTypeText: '登录后享受更多功能',
+            hasEnterprise: false,
+            currentBalance: '0.00'
           })
 
           // 通知首页刷新为未登录状态

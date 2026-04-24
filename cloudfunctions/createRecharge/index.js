@@ -5,10 +5,10 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
-// 普通商户配置 - 使用子商户号
-const MCH_ID = '1711788352'           // 商户号（子商户）
-const APPID = 'wxe2093480cd4b51cb'    // 小程序 AppID
-const API_KEY = 'h21kUY34j4Liht68oPqweRY109BdmT4u'  // 子商户 API 密钥
+// 普通商户配置 - 从环境变量读取
+const MCH_ID = process.env.MCH_ID || '1711788352'
+const APPID = process.env.APPID || 'wxe2093480cd4b51cb'
+const API_KEY = process.env.WEIXIN_API_KEY || ''
 
 // 生成随机字符串
 function generateNonceStr() {
@@ -31,9 +31,9 @@ function generateSign(params, key) {
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
-  const { userId, amount, type } = event
+  const { userId, amount, bonus = 0, configId = '', type } = event
 
-  console.log('createRecharge params:', { userId, amount, type })
+  console.log('createRecharge params:', { userId, amount, bonus, configId, type })
   console.log('OPENID:', wxContext.OPENID)
 
   if (!API_KEY) {
@@ -47,8 +47,8 @@ exports.main = async (event, context) => {
     // 获取用户的 openid
     const openId = wxContext.OPENID
 
-    // 生成订单号
-    const outTradeNo = `${Date.now()}${Math.floor(Math.random() * 10000)}`
+    // 生成订单号（使用 rc_ 前缀，支付回调据此识别为充值订单）
+    const outTradeNo = `rc_${Date.now()}${Math.floor(Math.random() * 10000)}`
 
     // 金额转换：元转分
     const totalFee = Math.round(amount * 100)
@@ -58,13 +58,16 @@ exports.main = async (event, context) => {
       user_id: userId,
       openid: openId,
       amount: amount,
+      bonus: bonus,
+      config_id: configId,
       amount_cent: totalFee,
       type: type,
       payment_method: 'wechat_pay',
       status: 'pending',
       out_trade_no: outTradeNo,
       mch_id: MCH_ID,
-      created_at: new Date().toISOString() // 使用 ISO 字符串格式，方便查询
+      created_at: db.serverDate(), // 使用云开发 serverDate，支持排序
+      _created_timestamp: Date.now() // 时间戳，用于客户端排序
     }
 
     const rechargeRes = await db.collection('recharges').add({
@@ -81,11 +84,11 @@ exports.main = async (event, context) => {
       appid: APPID,            // 小程序 AppID
       mch_id: MCH_ID,          // 商户号
       nonce_str: nonceStr,
-      body: '让她生-余额充值',
+      body: type === 'enterprise' ? '让她生-企业账户充值' : '让她生-个人账户充值',
       out_trade_no: outTradeNo,
       total_fee: totalFee,
       spbill_create_ip: wxContext.CLIENTIP || '127.0.0.1',
-      notify_url: 'https://liandaofutou-2gdayw0068d938b3-1417102114.ap-shanghai.app.tcloudbase.com/rechargeNotify/',
+      notify_url: 'https://liandaofutou-2gdayw0068d938b3-1417102114.ap-shanghai.app.tcloudbase.com/paymentNotify',
       trade_type: 'JSAPI',
       openid: openId           // 用户 openid
     }

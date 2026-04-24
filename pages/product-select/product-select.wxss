@@ -12,14 +12,56 @@
   font-weight: bold;
   color: #333;
   background: #fff;
-  margin-bottom: 20rpx;
+  margin-bottom: 2rpx;
+}
+
+/* 未登录提示 - 放在筛选区域下方 */
+.login-tip {
+  background: #f5f5f5;
+  padding: 60rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tip-line {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.tip-line.highlight {
+  color: #D40E61;
+  font-weight: bold;
+  font-size: 30rpx;
+  margin: 20rpx 0 30rpx;
+}
+
+.login-btn {
+  width: 280rpx;
+  height: 80rpx;
+  background: linear-gradient(90deg, #D40E61, #FF5C8D);
+  color: #fff;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20rpx;
+}
+
+.login-btn::after {
+  border: none;
 }
 
 /* 顶部信息区域 */
 .header-section {
   background: #fff;
   padding: 20rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 2rpx;
   display: flex;
   gap: 20rpx;
 }
@@ -65,102 +107,92 @@
   -webkit-box-orient: vertical;
 }
 
-/* 素材库切换 */
-.lib-switch {
-  display: flex;
-  gap: 16rpx;
-  padding: 20rpx;
+/* 筛选区域 - 复用模板列表样式 */
+.filter-section {
   background: #fff;
+  padding: 20rpx 20rpx;
   margin-bottom: 2rpx;
 }
 
-.switch-btn {
-  flex: 1;
-  height: 72rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-  color: #666;
-  background: #f5f5f5;
-  border-radius: 36rpx;
-}
-
-.switch-btn.active {
-  background: linear-gradient(90deg, #D40E61, #FF5C8D);
-  color: #fff;
-  font-weight: bold;
-}
-
-/* 分类标签栏 */
-.category-tabs {
-  display: flex;
-  padding: 0 20rpx 20rpx;
+.sub-category-section {
   background: #fff;
-  overflow-x: auto;
+  padding: 16rpx 20rpx;
+  margin-bottom: 2rpx;
 }
 
-.primary-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  border-bottom: 1rpx solid #eee;
+.filter-scroll-full {
+  width: 100%;
+  white-space: nowrap;
 }
 
-.secondary-tabs {
-  background: #fafafa;
+.filter-tags {
+  display: inline-flex;
+  gap: 16rpx;
+  padding-right: 20rpx;
 }
 
-.tab-item {
+.filter-tag {
   flex-shrink: 0;
-  padding: 16rpx 24rpx;
-  font-size: 28rpx;
+  padding: 12rpx 24rpx;
+  font-size: 26rpx;
   color: #666;
-  position: relative;
-  margin-right: 20rpx;
-  border-radius: 24rpx;
   background: #f5f5f5;
+  border-radius: 8rpx;
+  white-space: nowrap;
 }
 
-.tab-item.active {
+.filter-tag.small {
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+}
+
+.filter-tag.active {
   background: linear-gradient(90deg, #D40E61, #FF5C8D);
   color: #fff;
   font-weight: 500;
 }
 
-/* 产品网格容器 */
+/* 瀑布流容器 - 3列 */
 .waterfall-container {
   display: flex;
-  flex-wrap: wrap;
-  padding: 20rpx;
+  padding: 20rpx 0;
   gap: 16rpx;
   box-sizing: border-box;
 }
 
+.waterfall-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  min-width: 0;
+}
+
 /* 产品卡片 */
 .product-card {
-  width: calc((100% - 32rpx) / 3);
   background: #fff;
   border-radius: 12rpx;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
   position: relative;
 }
 
+/* 图片容器 - 白色正方形 */
 .product-image-wrapper {
   width: 100%;
-  height: 220rpx;
+  aspect-ratio: 1 / 1;
   background: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
   overflow: hidden;
+  border-radius: 12rpx 12rpx 0 0;
 }
 
 .product-image {
-  width: auto;
+  width: 100%;
   height: 100%;
   display: block;
+  object-fit: contain;
+  background: #fff;
 }
 
 .product-info {
@@ -216,12 +248,6 @@
 
 .empty-text {
   font-size: 28rpx;
-  color: #999;
-  margin-bottom: 8rpx;
-}
-
-.empty-tip {
-  font-size: 24rpx;
   color: #999;
 }
 

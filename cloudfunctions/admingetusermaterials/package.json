@@ -1,0 +1,9 @@
+{
+  "name": "admingetusermaterials",
+  "version": "1.0.0",
+  "description": "Admin获取用户素材分类",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -14,13 +14,24 @@
   <block wx:if="{{isLogin}}">
   <!-- 编辑分类按钮 -->
   <view class="category-header">
-    <view class="category-tip">{{type === 'enterprise' ? '企业素材库，企业管理员可上传和管理素材' : '建议上传素材后及时修改素材名称，便于AI根据您的产品名称自动匹配相应的文案和设计'}}</view>
-    <view class="edit-category-btn" bindtap="goToCategoryManage" wx:if="{{canManage}}">编辑分类</view>
+    <view class="category-tip">素材库中可上传管理您的各种商品/产品，建议抠图后上传png格式的，生图效果最佳。上传素材后请及时修改素材名称，便于AI根据您的商品或产品名称自动匹配相应的文案和设计</view>
+    <view class="category-header-row">
+      <view class="batch-cut-btn" bindtap="goToBatchCut">批量抠图</view>
+      <view class="edit-category-btn" bindtap="goToCategoryManage" wx:if="{{canManage}}">编辑分类</view>
+    </view>
   </view>
 
-  <!-- 顶部一级分类 -->
+  <!-- 顶部一级分类（包含全部选项） -->
   <view class="top-categories">
     <scroll-view class="category-scroll" scroll-x>
+      <view
+        class="top-category-item {{selectedCategory === '' ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-id=""
+        data-name="全部"
+      >
+        全部
+      </view>
       <view
         class="top-category-item {{selectedCategory === item._id ? 'active' : ''}}"
         wx:for="{{categories}}"
@@ -45,11 +56,15 @@
     >
       <!-- 全部选项 -->
       <view
-        class="side-category-item {{selectedSubCategory === 'all' ? 'active' : ''}}"
-        bindtap="selectAllCategory"
+        id="sub-cat-all"
+        class="side-category-item {{selectedSubCategory === '' ? 'active' : ''}}"
+        bindtap="selectSubCategory"
+        data-id=""
+        data-name="全部"
       >
         全部
       </view>
+      <!-- 二级分类列表 -->
       <view
         id="sub-cat-{{item._id}}"
         class="side-category-item {{selectedSubCategory === item._id ? 'active' : ''}}"
@@ -61,7 +76,7 @@
       >
         {{item.name}}
       </view>
-      <view class="empty-sub" wx:if="{{subCategories.length === 0 && selectedCategory}}">
+      <view class="empty-sub" wx:if="{{subCategories.length === 0}}">
         <text>暂无二级分类</text>
       </view>
     </scroll-view>
@@ -91,13 +106,13 @@
             data-item="{{material}}"
           >
             <view wx:if="{{material.type === 'image'}}" class="image-wrapper" bindtap="previewImage" data-item="{{material}}">
-              <image src="{{material.url}}" mode="aspectFit" />
+              <image src="{{material.thumbnail_url || material.url}}" mode="aspectFit" />
             </view>
             <view wx:if="{{material.type === 'video'}}" class="video-wrapper" bindtap="previewImage" data-item="{{material}}">
               <video src="{{material.url }}" />
             </view>
             <view class="content">
-              <text class="material-name">{{material.name}}</text>
+              <text class="material-name">{{material.displayName}}</text>
               <view class="material-actions">
                 <text class="material-action" catchtap="editMaterialName" data-item="{{material}}">
                   <text class="action-icon">✎</text>
@@ -121,6 +136,12 @@
       <view class="empty" wx:if="{{groupedMaterials.length === 0 && !loading}}">
         <text class="empty-text">暂无素材</text>
         <button class="empty-btn" bindtap="goToUploadWithCategory" wx:if="{{canUpload}}">去添加</button>
+      </view>
+
+      <!-- 加载更多提示 -->
+      <view class="load-more" wx:if="{{materials.length > 0}}">
+        <view wx:if="{{loadingMore}}" class="loading-more-text">加载中...</view>
+        <view wx:elif="{{!hasMore}}" class="no-more-text">没有更多素材了</view>
       </view>
     </scroll-view>
   </view>

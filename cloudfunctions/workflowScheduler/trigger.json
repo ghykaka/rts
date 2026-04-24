@@ -1,0 +1,7 @@
+{
+  "trigger": {
+    "name": "workflowTrigger",
+    "type": "timer",
+    "config": "0 * * * *"
+  }
+}

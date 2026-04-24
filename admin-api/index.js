@@ -1,5 +1,6 @@
 const express = require('express')
 const cloud = require('@cloudbase/node-sdk')
+const path = require('path')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -16,6 +17,11 @@ app.use((req, res, next) => {
 })
 
 app.use(express.json())
+
+// 托管前端静态文件
+app.use(express.static(path.join(__dirname, 'dist')))
+
+// API 路由...
 
 // 初始化云开发 SDK
 let cloudApp = null
@@ -77,14 +83,14 @@ app.post('/admin/login', async (req, res) => {
 // 获取用户列表
 app.get('/admin/users', verifyAdmin, async (req, res) => {
   try {
-    const { page = 1, pageSize = 20, userId, phone, userType, companyName } = req.query
+    const { page = 1, pageSize = 20, userId, phone, userType, enterpriseName } = req.query
     const result = await callCloudFunction('admingetusers', {
       page: parseInt(page),
       pageSize: parseInt(pageSize),
       userId: userId || undefined,
       phone: phone || undefined,
       userType: userType || undefined,
-      companyName: companyName || undefined
+      enterpriseName: enterpriseName || undefined
     })
     res.json(result)
   } catch (err) {
@@ -118,6 +124,29 @@ app.put('/admin/users/:id/balance', verifyAdmin, async (req, res) => {
     res.json(result)
   } catch (err) {
     res.status(500).json({ success: false, error: '更新余额失败' })
+  }
+})
+
+// 更新企业余额
+app.put('/admin/enterprises/:id/balance', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { balance } = req.body
+    // 直接操作数据库更新企业余额
+    const app = getCloudApp()
+    const db = app.database()
+    
+    const result = await db.collection('enterprises').doc(id).update({
+      data: {
+        balance: balance,
+        update_time: new Date()
+      }
+    })
+    
+    res.json({ success: true, data: result })
+  } catch (err) {
+    console.error('更新企业余额失败:', err)
+    res.status(500).json({ success: false, error: '更新企业余额失败' })
   }
 })
 
@@ -199,14 +228,35 @@ app.delete('/admin/materials/:id', verifyAdmin, async (req, res) => {
   }
 })
 
-// 根路由
+// 获取 Coze 工作流列表
+app.get('/admin/coze/workflows', verifyAdmin, async (req, res) => {
+  try {
+    const { pageNum = 1, pageSize = 30, workflowMode } = req.query
+    const result = await callCloudFunction('getcozeworkflows', {
+      pageNum: parseInt(pageNum),
+      pageSize: parseInt(pageSize),
+      workflowMode: workflowMode || undefined
+    })
+    res.json(result)
+  } catch (err) {
+    console.error('获取 Coze 工作流列表失败:', err)
+    res.status(500).json({ success: false, error: '获取 Coze 工作流列表失败' })
+  }
+})
+
+// 根路由 - 返回前端页面
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'RTS Admin API is running', time: new Date().toISOString() })
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 // 健康检查
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
+})
+
+// 前端路由通配符 (Vue Router history 模式)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
 // Railway 启动

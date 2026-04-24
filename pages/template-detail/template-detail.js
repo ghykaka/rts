@@ -118,7 +118,7 @@ Page({
 
     wx.showModal({
       title: '确认生成',
-      content: `将消耗 ¥${this.data.selectedPrice.balance_price / 100} 余额`,
+      content: `将消耗 ${this.data.selectedPrice.balance_price} 积分`,
       success: async modalRes => {
         if (modalRes.confirm) {
           await this.createOrder()

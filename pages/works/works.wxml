@@ -1,83 +1,97 @@
 <!--pages/works/works.wxml-->
-<view class="container">
-  <!-- 提示 -->
-  <view class="tip">生成作品有线上保存期限，请及时保存到本地</view>
-
-  <!-- Tab -->
+<view class="works-container">
+  <!-- Tabs -->
   <view class="tabs">
-    <view
-      class="tab {{currentTab === index ? 'active' : ''}}"
-      wx:for="{{tabs}}"
+    <view 
+      wx:for="{{tabs}}" 
       wx:key="index"
+      class="tab-item {{currentTab === index ? 'active' : ''}}"
       bindtap="switchTab"
       data-index="{{index}}"
     >
-      {{item}}
-      <view class="tab-badge" wx:if="{{getTabBadge(index) > 0}}">{{getTabBadge(index)}}</view>
+      <text class="tab-text">{{item}}</text>
+      <view class="tab-badge" wx:if="{{index === 1 && pendingCount > 0}}">{{pendingCount > 99 ? '99+' : pendingCount}}</view>
     </view>
   </view>
 
   <!-- 订单列表 -->
-  <view class="order-list">
-    <view
+  <view class="order-list" wx:if="{{orderList.length > 0}}">
+    <view 
+      wx:for="{{orderList}}" 
+      wx:key="orderId"
       class="order-item"
-      wx:for="{{orderList}}"
-      wx:key="_id"
       bindtap="viewOrderDetail"
-      data-item="{{item}}"
+      data-orderid="{{item.orderId}}"
     >
-      <!-- 生成中的订单 -->
-      <view wx:if="{{item.status === 'generating'}}" class="order-pending">
-        <view class="pending-icon">
-          <text class="icon-text">⏳</text>
-        </view>
-        <view class="pending-info">
-          <text class="pending-title">{{item.product_name}} + {{item.template_name}}</text>
-          <text class="pending-time">{{item.displayTime}}</text>
-          <text class="pending-desc">AI正在为您生成作品，请耐心等待</text>
-          <view class="progress-bar">
-            <view class="progress-inner"></view>
-          </view>
+      <!-- 订单头部 -->
+      <view class="order-header">
+        <text class="order-name">{{item.functionName || '作品生成'}}</text>
+        <view class="order-status {{item.statusClass}}">
+          <text>{{item.statusText}}</text>
         </view>
       </view>
 
-    <!-- 已完成的订单 -->
-    <view wx:if="{{item.status === 'completed'}}" class="order-completed">
-      <image
-        class="output-image"
-        src="{{item.poster_url || item.template_cover}}"
-        mode="aspectFill"
-      />
-      <view class="completed-info">
-        <text class="completed-title">{{item.product_name}} + {{item.template_name}}</text>
-        <view class="completed-meta">
-          <text class="time">{{item.displayTime}}</text>
-          <text class="price">¥{{item.displayPrice}}</text>
+      <!-- 预览图（多图展示，最多3张80x80方图） -->
+      <view class="order-preview" wx:if="{{item.previewImages.length > 0}}">
+        <!-- 前3张图片 -->
+        <view class="preview-images">
+          <image 
+            wx:for="{{item.previewImages}}" 
+            wx:for-item="img"
+            wx:for-index="imgIdx"
+            wx:key="imgIdx"
+            wx:if="{{imgIdx < 3}}"
+            src="{{img}}" 
+            mode="aspectFill" 
+            class="preview-image-square"
+          />
+        </view>
+        <!-- 多于3张显示数量 -->
+        <view class="preview-more" wx:if="{{item.previewCount > 3}}">
+          <text>等{{item.previewCount}}个作品</text>
+        </view>
+      </view>
+
+      <!-- 订单信息 -->
+      <view class="order-info">
+        <view class="info-row">
+          <text class="info-label">模板</text>
+          <text class="info-value">{{item.templateName || '-'}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">金额</text>
+          <text class="info-value price" wx:if="{{item.costType === 'cash'}}">¥{{item.costAmount}}</text>
+          <text class="info-value price" wx:elif="{{item.costAmount > 0}}">{{item.costAmount * 100}}积分</text>
+          <text class="info-value price" wx:else>-</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">时间</text>
+          <text class="info-value">{{item.createdAt}}</text>
         </view>
       </view>
     </view>
 
-      <!-- 失败的订单 -->
-      <view wx:if="{{item.status === 'failed'}}" class="order-failed">
-        <view class="failed-icon">❌</view>
-        <view class="failed-info">
-          <text class="failed-title">{{item.product_name}} + {{item.template_name}}</text>
-          <text class="failed-time">{{item.displayTime}}</text>
-          <text class="failed-desc">生成过程中出现错误，请重试</text>
-        </view>
-      </view>
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hasMore}}">
+      <text wx:if="{{loading}}">加载中...</text>
+      <text wx:else bindtap="loadOrders">加载更多</text>
     </view>
+    <view class="no-more" wx:if="{{!hasMore && orderList.length > 0}}">
+      <text>没有更多了</text>
+    </view>
+  </view>
 
-    <!-- 空状态 -->
-    <view class="empty" wx:if="{{orderList.length === 0 && !loading}}">
-      <image class="empty-icon" src="/assets/icons/empty.png" mode="aspectFit" />
-      <text class="empty-text">暂时空空如也</text>
-      <text class="empty-tip" bindtap="goHome">去创作</text>
-    </view>
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && orderList.length === 0}}">
+    <image src="/assets/images/empty-order.png" class="empty-icon" wx:if="{{false}}" />
+    <text class="empty-text">暂无订单</text>
+    <text class="empty-desc">快去创作你的第一个作品吧</text>
+    <button class="go-create-btn" bindtap="goHome">去创作</button>
+  </view>
 
-    <!-- 加载中 -->
-    <view class="loading" wx:if="{{loading}}">
-      <text>加载中...</text>
-    </view>
+  <!-- 加载中 -->
+  <view class="loading-mask" wx:if="{{loading && orderList.length === 0}}">
+    <view class="loading-spinner"></view>
+    <text>加载中...</text>
   </view>
 </view>

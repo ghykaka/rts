@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "envId": "liandaofutou-2gdayw0068d938b3",
+  "functions": [
+    {
+      "name": "getAppCategories",
+      "timeout": 60,
+      "memorySize": 256,
+      "handler": "index.main",
+      "runtime": "Nodejs18.15"
+    }
+  ]
+}

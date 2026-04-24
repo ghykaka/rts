@@ -1,0 +1,9 @@
+{
+  "name": "getUserIndustries",
+  "version": "1.0.0",
+  "description": "获取用户企业行业属性",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

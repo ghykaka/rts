@@ -1,40 +1,41 @@
 <!--pages/profile/profile.wxml-->
 <view class="container">
   <!-- 用户信息卡片 -->
-  <view class="user-card" bindtap="goLogin">
+  <view class="user-card" bindtap="{{isLogin ? '' : 'goLogin'}}">
     <view class="user-info-row">
       <image class="avatar" src="{{userInfo.avatar || '/assets/icons/default-avatar.png'}}" mode="aspectFill" />
       <view class="user-detail">
         <text class="nickname">{{isLogin ? (userInfo.nickname || '微信用户') : '点击登录'}}</text>
-        <text class="user-type">{{isLogin ? (currentMode === 'enterprise' ? (userInfo.company_short_name || userInfo.company_name || '企业会员') : '普通会员') : '登录后享受更多功能'}}</text>
+        <text class="user-type">{{userTypeText}}</text>
       </view>
     </view>
     <!-- 余额（已登录显示） -->
-    <view class="balance-row" wx:if="{{isLogin}}" catchtap="goRecharge">
-      <view class="balance-item" wx:if="{{currentMode === 'personal'}}">
-        <text class="balance-label">个人余额</text>
-        <text class="balance-amount">¥{{personalBalance}}</text>
+    <view class="balance-row" wx:if="{{isLogin}}">
+      <view class="balance-item">
+        <text class="balance-label">{{balanceLabel}}</text>
+        <text class="balance-amount">{{currentBalance}}积分</text>
       </view>
-      <view class="balance-item" wx:if="{{currentMode === 'enterprise'}}">
-        <text class="balance-label">企业余额</text>
-        <text class="balance-amount">¥{{enterpriseBalance}}</text>
+      <!-- 个人模式：显示充值按钮 -->
+      <view class="btn-recharge" wx:if="{{currentMode === 'personal'}}" catchtap="goRecharge">
+        <text>{{rechargeButtonText}}</text>
       </view>
-      <view class="btn-recharge" catchtap="goRecharge">
-        <text>充值</text>
+      <!-- 企业模式：只有企业管理员（主账号）显示企业充值按钮 -->
+      <view class="btn-recharge" wx:if="{{currentMode === 'enterprise' && isEnterpriseAdmin}}" catchtap="goRecharge">
+        <text>{{rechargeButtonText}}</text>
       </view>
     </view>
   </view>
 
   <!-- 会员切换标签（企业用户） -->
-  <view class="role-switch" wx:if="{{isLogin && userInfo.user_type === 'enterprise'}}">
+  <view class="role-switch" wx:if="{{isLogin && hasEnterprise}}">
     <text class="role-tag {{currentMode === 'enterprise' ? 'active' : ''}}" bindtap="switchToEnterprise">企业</text>
     <text class="role-tag {{currentMode === 'personal' ? 'active' : ''}}" bindtap="switchToPersonal">个人</text>
   </view>
 
   <!-- 功能列表 -->
   <view class="menu-section">
-    <!-- 企业入口 -->
-    <view class="menu-card" wx:if="{{isLogin && currentMode === 'enterprise'}}">
+    <!-- 企业入口（只有管理员可见） -->
+    <view class="menu-card" wx:if="{{isLogin && currentMode === 'enterprise' && isEnterpriseAdmin}}">
       <view class="menu-item" bindtap="goEnterpriseMaterials">
         <image class="menu-icon" src="/assets/icons/user1.png" />
         <text class="menu-text">企业素材库</text>
@@ -48,7 +49,7 @@
     </view>
 
     <!-- 成为企业用户 -->
-    <view class="menu-card" wx:if="{{isLogin && currentMode === 'personal' && userInfo.user_type !== 'enterprise'}}">
+    <view class="menu-card" wx:if="{{isLogin && currentMode === 'personal' && !hasEnterprise}}">
       <view class="menu-item" bindtap="goEnterpriseRegister">
         <image class="menu-icon" src="/assets/icons/user-qiye.png" />
         <text class="menu-text">成为企业用户</text>
@@ -67,12 +68,17 @@
 
     <!-- 其他功能 -->
     <view class="menu-card">
-      <view class="menu-item">
+      <view class="menu-item" bindtap="goRechargeRecords">
+        <image class="menu-icon" src="/assets/icons/user-cz.png" />
+        <text class="menu-text">充值记录</text>
+        <text class="arrow">></text>
+      </view>
+      <view class="menu-item" bindtap="goToCustomerService">
         <image class="menu-icon" src="/assets/icons/user3.png" />
         <text class="menu-text">咨询客服</text>
         <text class="arrow">></text>
       </view>
-      <view class="menu-item">
+      <view class="menu-item" bindtap="goToAboutUs">
         <image class="menu-icon" src="/assets/icons/user4.png" />
         <text class="menu-text">关于我们</text>
         <text class="arrow">></text>

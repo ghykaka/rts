@@ -8,8 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudbase/js-sdk": "^2.27.2",
     "@element-plus/icons-vue": "^2.3.0",
     "axios": "^1.6.0",
+    "cos-js-sdk-v5": "^1.10.1",
     "element-plus": "^2.5.0",
     "js-md5": "^0.7.3",
     "vue": "^3.4.0",

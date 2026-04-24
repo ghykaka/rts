@@ -3,11 +3,7 @@ Page({
   data: {
     type: 'personal', // personal / enterprise
     categories: [],
-    loading: false,
-    isDragging: false,
-    draggingId: '',
-    dragOverId: '',
-    itemHeight: 96 // 每个分类项的高度(rpx转换为px约48px * 2)
+    loading: false
   },
 
   onLoad(options) {
@@ -18,21 +14,73 @@ Page({
 
     // 检查权限：企业素材库分类只有管理员可以管理
     if (type === 'enterprise') {
-      const userInfo = wx.getStorageSync('userInfo')
-      if (!userInfo || userInfo.role !== 'admin') {
-        wx.showToast({ title: '只有企业管理员可以管理分类', icon: 'none' })
-        setTimeout(() => {
-          wx.navigateBack()
-        }, 1500)
-        return
-      }
+      this.checkAdminPermission(() => {
+        this.loadCategories()
+      })
+    } else {
+      this.loadCategories()
     }
-
-    this.loadCategories()
   },
 
   onShow() {
     this.loadCategories()
+  },
+
+  // 检查企业管理员权限
+  async checkAdminPermission(callback) {
+    try {
+      const userId = wx.getStorageSync('userId')
+      if (!userId) {
+        wx.showToast({ title: '请先登录', icon: 'none' })
+        setTimeout(() => wx.navigateBack(), 1500)
+        return
+      }
+
+      const res = await wx.cloud.callFunction({
+        name: 'getUserInfo',
+        data: { userId }
+      })
+
+      if (!res.result || !res.result.success) {
+        wx.showToast({ title: '获取用户信息失败', icon: 'none' })
+        setTimeout(() => wx.navigateBack(), 1500)
+        return
+      }
+
+      const userInfo = res.result.data
+      
+      // 判断是否是管理员
+      let isAdmin = false
+      
+      // 条件1：用户有企业信息，且是 admin_user_id
+      if (userInfo.admin_user_id && userId === userInfo.admin_user_id) {
+        isAdmin = true
+      }
+      // 条件2：role === 'admin'
+      else if (userInfo.role === 'admin') {
+        isAdmin = true
+      }
+      // 条件3：有 enterprise_id 但没有 role（兼容老数据）
+      else if (userInfo.enterprise_id && !userInfo.role) {
+        isAdmin = true
+      }
+
+      if (!isAdmin) {
+        wx.showToast({ title: '只有企业管理员可以管理分类', icon: 'none' })
+        setTimeout(() => wx.navigateBack(), 1500)
+        return
+      }
+
+      // 更新本地存储
+      wx.setStorageSync('userInfo', userInfo)
+      
+      // 权限检查通过，执行回调
+      if (callback) callback()
+    } catch (err) {
+      console.error('checkAdminPermission error:', err)
+      wx.showToast({ title: '权限检查失败', icon: 'none' })
+      setTimeout(() => wx.navigateBack(), 1500)
+    }
   },
 
   // 加载分类
@@ -40,22 +88,28 @@ Page({
     this.setData({ loading: true })
 
     try {
-      const db = wx.cloud.database()
       const userId = wx.getStorageSync('userId')
+      const { type } = this.data
 
-      const res = await db.collection('material_categories')
-        .where({
-          owner_type: this.data.type,
-          owner_id: userId
-        })
-        .orderBy('sort_order', 'asc')
-        .orderBy('create_time', 'asc')
-        .get()
+      // 使用云函数查询
+      const res = await wx.cloud.callFunction({
+        name: 'getAppCategories',
+        data: {
+          action: 'userMaterialCategories',
+          userId: userId,
+          userType: type
+        }
+      })
 
-      const allCategories = res.data || []
+      const allCategories = res.result?.data || []
 
       // 构建树形结构
       const tree = this.buildCategoryTree(allCategories)
+      
+      // 打印一级分类名称和 order 值
+      const topLevelInfo = tree.map((cat, i) => `${i}:${cat.name}[order=${cat.order}]`)
+      console.log('一级分类排序:', topLevelInfo.join(', '))
+      
       this.setData({ categories: tree })
     } catch (err) {
       console.error('loadCategories error:', err)
@@ -67,221 +121,158 @@ Page({
 
   // 构建分类树
   buildCategoryTree(categories) {
-    const map = {}
     const roots = []
+    const childrenMap = {}
 
-    // 创建映射
-    categories.forEach(cat => {
-      map[cat._id] = { ...cat, children: [] }
+    // 按 order 排序后处理
+    const sortedCategories = [...categories].sort((a, b) => {
+      if (a.level !== b.level) return a.level - b.level
+      return (a.order || 0) - (b.order || 0)
     })
 
-    // 构建树
-    categories.forEach(cat => {
-      const node = map[cat._id]
-      if (cat.parent_id && map[cat.parent_id]) {
-        map[cat.parent_id].children.push(node)
+    // 先分离一级和二级分类
+    sortedCategories.forEach(cat => {
+      if (!cat.parent_id || cat.parent_id === 'null' || cat.parent_id === '') {
+        // 一级分类
+        childrenMap[cat._id] = []
+        roots.push({ ...cat, children: childrenMap[cat._id] })
       } else {
-        roots.push(node)
+        // 二级分类 - 先收集
+        if (!childrenMap[cat.parent_id]) {
+          childrenMap[cat.parent_id] = []
+        }
+        childrenMap[cat.parent_id].push(cat)
       }
+    })
+
+    // 对二级分类也按 order 排序
+    roots.forEach(root => {
+      root.children.sort((a, b) => (a.order || 0) - (b.order || 0))
     })
 
     return roots
   },
 
-  // 阻止页面滚动
-  preventScroll(e) {
-    // 空函数，用于阻止scroll-view滚动
-  },
-
-  // 长按开始拖拽
-  handleLongPress(e) {
-    const { id } = e.currentTarget.dataset
-    this.setData({
-      isDragging: true,
-      draggingId: id,
-      dragOverId: ''
-    })
-    wx.vibrateShort({ type: 'medium' })
-  },
-
-  // 拖拽移动
-  handleTouchMove(e) {
-    if (!this.data.isDragging) return
-
-    const touch = e.touches[0]
-    const { pageY } = touch
-
-    // 获取屏幕信息计算每个分类项的高度
-    const systemInfo = wx.getSystemInfoSync()
-    const screenWidth = systemInfo.windowWidth
-    const itemHeightPx = 96 * (screenWidth / 750) // 将rpx转换为px
-
-    // 计算滚动位置
-    const query = wx.createSelectorQuery()
-    query.select('.category-list').boundingClientRect((listRect) => {
-      if (!listRect) return
-
-      // 计算相对位置
-      const relativeY = pageY - listRect.top + (listRect.scrollTop || 0)
-
-      // 计算当前触摸位置对应的索引
-      const index = Math.floor(relativeY / itemHeightPx)
-
-      // 获取对应位置的分类项
-      this.findCategoryByTouchIndex(index)
-    }).exec()
-  },
-
-  // 根据触摸索引找到对应的分类项
-  findCategoryByTouchIndex(touchIndex) {
-    const { categories, draggingId } = this.data
-    let currentIndex = 0
-
-    for (let i = 0; i < categories.length; i++) {
-      const cat = categories[i]
-
-      // 一级分类
-      if (currentIndex === touchIndex && cat._id !== draggingId) {
-        this.setData({ dragOverId: cat._id })
-        return
-      }
-      currentIndex++
-
-      // 二级分类
-      if (cat.children && cat.children.length > 0) {
-        for (let j = 0; j < cat.children.length; j++) {
-          if (currentIndex === touchIndex && cat.children[j]._id !== draggingId) {
-            this.setData({ dragOverId: cat.children[j]._id })
-            return
-          }
-          currentIndex++
-        }
-      }
-    }
-  },
-
-  // 拖拽结束
-  handleTouchEnd(e) {
-    if (!this.data.isDragging) return
-
-    const { draggingId, dragOverId } = this.data
-
-    if (draggingId && dragOverId && draggingId !== dragOverId) {
-      // 执行排序
-      this.performReorder(draggingId, dragOverId)
-    } else {
-      // 没有移动到有效位置，结束拖拽
-      wx.showToast({ title: '拖拽到其他位置后松开', icon: 'none', duration: 1000 })
-    }
-
-    this.setData({
-      isDragging: false,
-      draggingId: '',
-      dragOverId: ''
-    })
-  },
-
-  // 取消拖拽
-  handleTouchCancel() {
-    this.setData({
-      isDragging: false,
-      draggingId: '',
-      dragOverId: ''
-    })
-  },
-
-  // 执行重新排序
-  async performReorder(fromId, toId) {
+  // 上移
+  async moveUp(e) {
+    const { id, level, index, parentIndex } = e.currentTarget.dataset
     const { categories } = this.data
 
-    // 收集所有分类项（包括一级和二级）
-    const allItems = []
+    if (level === '1') {
+      // 一级分类上移
+      if (index === 0) {
+        wx.showToast({ title: '已经是第一个了', icon: 'none' })
+        return
+      }
 
-    // 添加一级分类
-    categories.forEach((cat, topIndex) => {
-      allItems.push({
-        id: cat._id,
-        level: 'top',
-        parentId: '',
-        sortIndex: topIndex
+      // 深拷贝并交换
+      const newCategories = JSON.parse(JSON.stringify(categories))
+      const updates = [
+        { _id: newCategories[index]._id, order: index - 1 },
+        { _id: newCategories[index - 1]._id, order: index }
+      ]
+
+      // 交换
+      const temp = newCategories[index]
+      newCategories[index] = newCategories[index - 1]
+      newCategories[index - 1] = temp
+
+      this.setData({ categories: newCategories })
+      await this.saveSortOrders(updates)
+    } else {
+      // 二级分类上移
+      if (index === 0) {
+        wx.showToast({ title: '已经是第一个了', icon: 'none' })
+        return
+      }
+
+      const newCategories = JSON.parse(JSON.stringify(categories))
+      const children = newCategories[parentIndex].children
+      const updates = [
+        { _id: children[index]._id, order: index - 1 },
+        { _id: children[index - 1]._id, order: index }
+      ]
+
+      // 交换
+      const temp = children[index]
+      children[index] = children[index - 1]
+      children[index - 1] = temp
+
+      this.setData({ categories: newCategories })
+      await this.saveSortOrders(updates)
+    }
+  },
+
+  // 下移
+  async moveDown(e) {
+    const { id, level, index, parentIndex } = e.currentTarget.dataset
+    const { categories } = this.data
+
+    if (level === '1') {
+      // 一级分类下移
+      if (index === categories.length - 1) {
+        wx.showToast({ title: '已经是最后一个了', icon: 'none' })
+        return
+      }
+
+      const newCategories = JSON.parse(JSON.stringify(categories))
+      const updates = [
+        { _id: newCategories[index]._id, order: index + 1 },
+        { _id: newCategories[index + 1]._id, order: index }
+      ]
+
+      // 交换
+      const temp = newCategories[index]
+      newCategories[index] = newCategories[index + 1]
+      newCategories[index + 1] = temp
+
+      this.setData({ categories: newCategories })
+      await this.saveSortOrders(updates)
+    } else {
+      // 二级分类下移
+      const newCategories = JSON.parse(JSON.stringify(categories))
+      const children = newCategories[parentIndex].children
+      if (index === children.length - 1) {
+        wx.showToast({ title: '已经是最后一个了', icon: 'none' })
+        return
+      }
+
+      const updates = [
+        { _id: children[index]._id, order: index + 1 },
+        { _id: children[index + 1]._id, order: index }
+      ]
+
+      // 交换
+      const temp = children[index]
+      children[index] = children[index + 1]
+      children[index + 1] = temp
+
+      this.setData({ categories: newCategories })
+      await this.saveSortOrders(updates)
+    }
+  },
+
+  // 保存排序（使用轻量级云函数，不刷新页面）
+  async saveSortOrders(updates) {
+    console.log('saveSortOrders called with:', JSON.stringify(updates))
+    
+    try {
+      const result = await wx.cloud.callFunction({
+        name: 'updateCategorySort',
+        data: { updates }
       })
 
-      // 添加二级分类
-      if (cat.children && cat.children.length > 0) {
-        cat.children.forEach((subCat, subIndex) => {
-          allItems.push({
-            id: subCat._id,
-            level: 'sub',
-            parentId: cat._id,
-            sortIndex: subIndex
-          })
-        })
-      }
-    })
+      console.log('saveSortOrders result:', JSON.stringify(result))
 
-    // 找到源项和目标项
-    const fromIndex = allItems.findIndex(item => item.id === fromId)
-    const toIndex = allItems.findIndex(item => item.id === toId)
-
-    if (fromIndex === -1 || toIndex === -1) return
-
-    const fromItem = allItems[fromIndex]
-    const toItem = allItems[toIndex]
-
-    // 只允许同级别排序
-    if (fromItem.level !== toItem.level) {
-      wx.showToast({ title: '只能同级别排序', icon: 'none' })
-      return
-    }
-
-    // 执行排序
-    try {
-      const db = wx.cloud.database()
-
-      if (fromItem.level === 'top') {
-        // 一级分类排序
-        const newCategories = [...categories]
-        const fromCat = newCategories.splice(fromItem.sortIndex, 1)[0]
-        newCategories.splice(toItem.sortIndex, 0, fromCat)
-
-        // 更新所有一级分类的 sort_order
-        for (let i = 0; i < newCategories.length; i++) {
-          await db.collection('material_categories').doc(newCategories[i]._id).update({
-            data: { sort_order: i }
-          })
-        }
-
-        this.setData({ categories: newCategories })
+      if (result.result && result.result.success) {
+        wx.showToast({ title: '排序已保存', icon: 'success', duration: 800 })
       } else {
-        // 二级分类排序
-        const newCategories = categories.map(cat => ({ ...cat, children: [...(cat.children || [])] }))
-        const parentIndex = newCategories.findIndex(cat => cat._id === fromItem.parentId)
-
-        if (parentIndex !== -1 && fromItem.parentId === toItem.parentId) {
-          // 同一父分类下排序
-          const children = newCategories[parentIndex].children
-          // 使用 fromItem.sortIndex 和 toItem.sortIndex 获取正确的子分类索引
-          const fromSubCat = children.splice(fromItem.sortIndex, 1)[0]
-          children.splice(toItem.sortIndex, 0, fromSubCat)
-
-          // 更新所有二级分类的 sort_order
-          for (let i = 0; i < children.length; i++) {
-            await db.collection('material_categories').doc(children[i]._id).update({
-              data: { sort_order: i }
-            })
-          }
-
-          this.setData({ categories: newCategories })
-        } else {
-          wx.showToast({ title: '只能同分类下排序', icon: 'none' })
-          return
-        }
+        console.error('排序失败:', result.result?.error)
+        wx.showToast({ title: '排序保存失败', icon: 'none' })
       }
-
-      wx.showToast({ title: '排序成功', icon: 'success' })
     } catch (err) {
-      console.error('performReorder error:', err)
-      wx.showToast({ title: '排序失败', icon: 'none' })
+      console.error('saveSortOrders error:', err)
+      wx.showToast({ title: '排序保存失败', icon: 'none' })
     }
   },
 
@@ -305,44 +296,26 @@ Page({
           wx.showLoading({ title: '删除中...' })
 
           try {
-            const db = wx.cloud.database()
-
-            // 检查是否有素材使用该分类
-            const materialsRes = await db.collection('materials')
-              .where({ category_id: id })
-              .get()
-
-            if (materialsRes.data && materialsRes.data.length > 0) {
-              wx.hideLoading()
-              wx.showModal({
-                title: '无法删除',
-                content: '该分类下有素材，请先移除或删除素材后再删除分类',
-                showCancel: false
-              })
-              return
-            }
-
-            // 检查是否有子分类
-            const childrenRes = await db.collection('material_categories')
-              .where({ parent_id: id })
-              .get()
-
-            if (childrenRes.data && childrenRes.data.length > 0) {
-              wx.hideLoading()
-              wx.showModal({
-                title: '无法删除',
-                content: '该分类下有子分类，请先删除子分类后再删除',
-                showCancel: false
-              })
-              return
-            }
-
-            // 删除分类
-            await db.collection('material_categories').doc(id).remove()
+            const result = await wx.cloud.callFunction({
+              name: 'getAppCategories',
+              data: {
+                action: 'deleteCategory',
+                categoryId: id
+              }
+            })
 
             wx.hideLoading()
-            wx.showToast({ title: '删除成功', icon: 'success' })
-            this.loadCategories()
+
+            if (result.result && result.result.success) {
+              wx.showToast({ title: '删除成功', icon: 'success' })
+              this.loadCategories()
+            } else {
+              wx.showModal({
+                title: '无法删除',
+                content: result.result?.error || '删除失败',
+                showCancel: false
+              })
+            }
           } catch (err) {
             console.error('deleteCategory error:', err)
             wx.hideLoading()

@@ -5,9 +5,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
-// 商户配置
-const MCH_ID = '1711788352'           // 商户号（子商户）
-const API_KEY = 'h21kUY34j4Liht68oPqweRY109BdmT4u'      // 子商户 API 密钥
+// 商户配置 - 从环境变量读取
+const MCH_ID = process.env.MCH_ID || '1711788352'
+const API_KEY = process.env.WEIXIN_API_KEY || ''
 
 // 解析 XML（支持 CDATA 格式）
 function parseXML(xml) {
@@ -139,34 +139,70 @@ exports.main = async (event, context) => {
             }
           })
 
+          // 计算赠送金额（bonus 单位是元，totalFee 单位是分）
+          const bonus = recharge.bonus || 0
+          const totalAdd = totalFee + Math.round(bonus * 100) // 加上赠送金额
+
           // 给用户加余额
-          console.log('准备更新用户余额, user_id:', recharge.user_id)
-          const userRes = await db.collection('users').doc(recharge.user_id).get()
-          console.log('用户查询结果:', JSON.stringify(userRes))
+          console.log('准备更新用户余额, user_id:', recharge.user_id, ', type:', recharge.type, ', 充值:', totalFee, ', 赠送:', bonus, ', 总计:', totalAdd)
           
-          // doc().get() 返回的是对象，不是数组
-          if (userRes.data && userRes.data._id) {
-            const user = userRes.data
-            const currentBalance = user.balance || 0
-            const newBalance = currentBalance + totalFee
-
-            console.log('更新余额:', { currentBalance, addAmount: totalFee, newBalance })
-
-            await db.collection('users').doc(recharge.user_id).update({
-              data: {
-                balance: newBalance,
-                update_time: db.serverDate()
+          if (recharge.type === 'enterprise') {
+            // 企业充值：更新 enterprises 表中的 balance
+            const userRes = await db.collection('users').doc(recharge.user_id).get()
+            if (userRes.data && userRes.data.enterprise_id) {
+              const enterpriseRes = await db.collection('enterprises').doc(userRes.data.enterprise_id).get()
+              if (enterpriseRes.data) {
+                const currentBalance = enterpriseRes.data.balance || 0
+                const newBalance = currentBalance + totalAdd
+                
+                await db.collection('enterprises').doc(userRes.data.enterprise_id).update({
+                  data: {
+                    balance: newBalance,
+                    update_time: db.serverDate()
+                  }
+                })
+                
+                console.log('企业余额更新成功:', {
+                  enterpriseId: userRes.data.enterprise_id,
+                  oldBalance: currentBalance,
+                  addAmount: totalFee,
+                  bonus: bonus,
+                  totalAdd: totalAdd,
+                  newBalance: newBalance
+                })
               }
-            })
-
-            console.log('用户余额更新成功:', {
-              userId: recharge.user_id,
-              oldBalance: currentBalance,
-              addAmount: totalFee,
-              newBalance: newBalance
-            })
+            }
           } else {
-            console.error('未找到用户或用户数据为空, user_id:', recharge.user_id)
+            // 个人充值：更新 users 表中的 balance
+            const userRes = await db.collection('users').doc(recharge.user_id).get()
+            console.log('用户查询结果:', JSON.stringify(userRes))
+            
+            // doc().get() 返回的是对象，不是数组
+            if (userRes.data && userRes.data._id) {
+              const user = userRes.data
+              const currentBalance = user.balance || 0
+              const newBalance = currentBalance + totalAdd
+
+              console.log('更新余额:', { currentBalance, addAmount: totalFee, bonus: bonus, totalAdd: totalAdd, newBalance })
+
+              await db.collection('users').doc(recharge.user_id).update({
+                data: {
+                  balance: newBalance,
+                  update_time: db.serverDate()
+                }
+              })
+
+              console.log('用户余额更新成功:', {
+                userId: recharge.user_id,
+                oldBalance: currentBalance,
+                addAmount: totalFee,
+                bonus: bonus,
+                totalAdd: totalAdd,
+                newBalance: newBalance
+              })
+            } else {
+              console.error('未找到用户或用户数据为空, user_id:', recharge.user_id)
+            }
           }
 
           console.log('充值处理完成')

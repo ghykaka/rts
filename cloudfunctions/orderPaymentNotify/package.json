@@ -1,0 +1,8 @@
+{
+  "name": "orderPaymentNotify",
+  "version": "1.0.0",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.0",
+    "xml2js": "^0.6.0"
+  }
+}

@@ -1,7 +1,60 @@
 {
   "description": "小程序项目配置文件",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "folder",
+        "value": "admin"
+      },
+      {
+        "type": "folder",
+        "value": "admin-api"
+      },
+      {
+        "type": "folder",
+        "value": "cloudfunctions"
+      },
+      {
+        "type": "folder",
+        "value": "scripts"
+      },
+      {
+        "type": "file",
+        "value": "package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "cloudfunctions/**/package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "*.log"
+      },
+      {
+        "type": "file",
+        "value": "deploy*.log"
+      },
+      {
+        "type": "file",
+        "value": "*.md"
+      },
+      {
+        "type": "file",
+        "value": "Dockerfile"
+      },
+      {
+        "type": "file",
+        "value": "Railway.json"
+      }
+    ],
     "include": []
   },
   "setting": {

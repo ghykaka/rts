@@ -1,5 +1,1 @@
-{
-  "permissions": {
-    "openapi": ["wxacode.getUnlimited"]
-  }
-}
+{"type":"Event","runtime":"Nodejs18.15","timeout":60}

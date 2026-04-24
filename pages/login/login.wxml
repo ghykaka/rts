@@ -13,11 +13,11 @@
       bindgetphonenumber="getPhoneNumber"
       disabled="{{!agreeProtocol}}"
     >
-      微信手机号一键登录
+      手机号快捷登录
     </button>
   </view>  
 
-  <text class="tip">登录后享受更多功能，新用户赠送5元余额</text>
+  <text class="tip">登录后享受更多功能，新用户赠送500积分</text>
 
   <!-- 服务协议勾选 -->
   <view class="protocol-row">

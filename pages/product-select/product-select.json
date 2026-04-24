@@ -1,4 +1,5 @@
 {
   "navigationBarTitleText": "选择产品",
-  "usingComponents": {}
+  "usingComponents": {},
+  "onReachBottomDistance": 100
 }

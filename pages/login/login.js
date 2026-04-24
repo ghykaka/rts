@@ -5,7 +5,7 @@ Page({
   data: {
     loading: false,
     phoneLoading: false,
-    agreeProtocol: true // 默认同意服务协议
+    agreeProtocol: false // 默认不同意服务协议
   },
 
   // 切换协议勾选状态
@@ -15,14 +15,29 @@ Page({
     })
   },
 
-  // 查看服务协议（后续链接到文章页面）
+  // 查看服务协议
   viewProtocol() {
-    // TODO: 后续跳转到文章详情页
-    wx.showToast({ title: '服务协议页面开发中', icon: 'none' })
+    wx.navigateTo({
+      url: '/pages/article-detail/article-detail?id=c494286569e3273c000098d547eda5c2'
+    })
+  },
+
+  onLoad(options) {
+    // 保存 redirect 路径
+    if (options.redirect) {
+      this.redirectPath = decodeURIComponent(options.redirect)
+    }
   },
 
   async getPhoneNumber(e) {
     if (this.data.phoneLoading) return
+
+    // 检查是否同意协议
+    if (!this.data.agreeProtocol) {
+      wx.showToast({ title: '请阅读并同意服务协议', icon: 'none' })
+      return
+    }
+
     console.log('getPhoneNumber:', e.detail)
 
     if (e.detail.errMsg !== 'getPhoneNumber:ok') {
@@ -52,9 +67,6 @@ Page({
         // 保存用户信息
         app.setUserInfo(res.result.data.userInfo, res.result.data.userId)
 
-        // 立即返回，不等待 toast
-        wx.navigateBack()
-
         // 通知上一页刷新（通过 eventChannel）
         const pages = getCurrentPages()
         const prevPage = pages[pages.length - 2]
@@ -62,8 +74,15 @@ Page({
           prevPage.setData({
             isLogin: true,
             userInfo: res.result.data.userInfo,
-            displayBalance: (res.result.data.userInfo.balance / 100).toFixed(2)
+            displayBalance: String(res.result.data.userInfo.balance || 0)  // 积分直接显示
           })
+        }
+
+        // 如果有 redirect 路径，跳转到指定页面；否则返回上一页
+        if (this.redirectPath) {
+          wx.reLaunch({ url: this.redirectPath })
+        } else {
+          wx.navigateBack()
         }
       } else {
         wx.showToast({ title: res.result.error || '登录失败', icon: 'none' })
