@@ -7,14 +7,14 @@
       <text class="nickname">{{userInfo.nickname}}</text>
     </view>
     <view class="balance-info">
-      <text class="card-balance-label">账户余额</text>
-      <text class="balance-value">¥{{companyBalance}}</text>
+      <text class="card-balance-label">企业积分</text>
+      <text class="balance-value">{{companyBalance}}</text>
     </view>
   </view>
 
   <view class="header">
     <text class="title">管理子账号</text>
-    <text class="subtitle">为企业成员分配账号和余额</text>
+    <text class="subtitle">为企业成员分配账号和积分</text>
   </view>
 
   <button class="add-btn" bindtap="showAddModal">+ 添加成员</button>
@@ -37,8 +37,8 @@
         </view>
       </view>
       <view class="balance-section">
-        <text class="balance-label">账户余额</text>
-        <text class="balance-amount">¥{{item.displayBalance}}</text>
+        <text class="balance-label">积分</text>
+        <text class="balance-amount">{{item.displayBalance}}</text>
         <view class="action-btns">
           <button
             class="allocate-btn"
@@ -101,10 +101,10 @@
         />
       </view>
       <view class="form-item">
-        <view class="form-label">分配余额(元)</view>
+        <view class="form-label">分配积分</view>
         <input
           class="form-input"
-          placeholder="请输入分配金额，可为0"
+          placeholder="请输入分配积分，可为0"
           value="{{displayBalance}}"
           bindinput="onBalanceInput"
           bindtap="stopPropagation"
@@ -119,22 +119,22 @@
   </view>
 </view>
 
-<!-- 分配余额对话框 -->
+<!-- 分配积分对话框 -->
 <view class="modal-mask" wx:if="{{allocateModal}}" bindtap="hideAllocateModal">
   <view class="modal-content allocate-modal {{allocateModalKeyboardUp ? 'content-keyboard-up' : ''}}" catchtap="stopPropagation">
     <view class="modal-header">
-      <text class="modal-title">分配余额</text>
+      <text class="modal-title">分配积分</text>
       <text class="modal-close" bindtap="hideAllocateModal">✕</text>
     </view>
     <view class="modal-body">
       <view class="form-item">
-        <view class="form-label">当前余额: <text class="current-balance">¥{{currentSubBalance}}</text></view>
+        <view class="form-label">当前积分: <text class="current-balance">{{currentSubBalance}}</text></view>
       </view>
       <view class="form-item">
-        <view class="form-label">请输入目标余额(元)</view>
+        <view class="form-label">请输入目标积分</view>
         <input
           class="form-input"
-          placeholder="请输入目标余额"
+          placeholder="请输入目标积分"
           value="{{displayAllocateAmount}}"
           bindinput="onAllocateAmountInput"
           bindtap="stopPropagation"
@@ -144,7 +144,7 @@
         />
       </view>
       <view class="form-item">
-        <view class="form-tip">将为企业增加支出: <text class="allocate-amount">¥{{allocateDiff}}</text></view>
+        <view class="form-tip">将为企业减少积分: <text class="allocate-amount">{{allocateDiff}}</text></view>
       </view>
     </view>
     <view class="modal-footer">

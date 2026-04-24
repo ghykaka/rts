@@ -116,8 +116,8 @@
         <view class="summary-item">
           <text class="summary-label">价格</text>
           <text class="summary-value">
-            <text wx:if="{{generatePrice.cash_price > 0}}">¥{{generatePrice.cash_price}}</text>
-            <text wx:if="{{generatePrice.balance_price > 0}}"> + {{generatePrice.balance_price}}余额</text>
+            <text wx:if="{{generatePrice.cash_price > 0}}">¥{{generatePriceYuan.cash_price}}</text>
+            <text wx:if="{{generatePrice.balance_price > 0}}"> + {{generatePrice.balance_price}}积分</text>
           </text>
         </view>
       </view>

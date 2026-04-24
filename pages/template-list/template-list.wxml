@@ -1,7 +1,8 @@
 <!--pages/template-list/template-list.wxml-->
 <view class="container">
   <!-- Step标题 -->
-  <view class="step-title">Step1，选择风格模板</view>
+  <view class="step-title" wx:if="{{functionName}}">{{functionName}} - 选择模板</view>
+  <view class="step-title" wx:else>选择模板</view>
 
   <!-- 行业筛选行 -->
   <view class="filter-section">
@@ -101,7 +102,8 @@
         data-cover="{{item.thumbnail}}"
         data-description="{{item.templateDesc}}"
         data-needmaterial="{{item.needMaterial}}"
-        data-functionid="{{item.functionId}}"
+        data-functionid="{{item.functionIds && item.functionIds.length > 0 ? item.functionIds[0] : item.functionId}}"
+        data-functionids="{{item.functionIds || (item.functionId ? [item.functionId] : [])}}"
       >
         <image
           class="template-image"
@@ -117,6 +119,7 @@
           <view class="template-tags">
             <text class="template-category" wx:if="{{item.category1Name || item.industry}}">{{item.category1Name || item.industry}}</text>
             <text class="template-function" wx:if="{{item.functionName}}">{{item.functionName}}</text>
+            <text class="template-function-multi" wx:if="{{item.functionIds && item.functionIds.length > 1}}">+{{item.functionIds.length - 1}}</text>
           </view>
         </view>
       </view>
@@ -133,7 +136,8 @@
         data-cover="{{item.thumbnail}}"
         data-description="{{item.templateDesc}}"
         data-needmaterial="{{item.needMaterial}}"
-        data-functionid="{{item.functionId}}"
+        data-functionid="{{item.functionIds && item.functionIds.length > 0 ? item.functionIds[0] : item.functionId}}"
+        data-functionids="{{item.functionIds || (item.functionId ? [item.functionId] : [])}}"
       >
         <image
           class="template-image"
@@ -149,6 +153,7 @@
           <view class="template-tags">
             <text class="template-category" wx:if="{{item.category1Name || item.industry}}">{{item.category1Name || item.industry}}</text>
             <text class="template-function" wx:if="{{item.functionName}}">{{item.functionName}}</text>
+            <text class="template-function-multi" wx:if="{{item.functionIds && item.functionIds.length > 1}}">+{{item.functionIds.length - 1}}</text>
           </view>
         </view>
       </view>
@@ -165,7 +170,8 @@
         data-cover="{{item.thumbnail}}"
         data-description="{{item.templateDesc}}"
         data-needmaterial="{{item.needMaterial}}"
-        data-functionid="{{item.functionId}}"
+        data-functionid="{{item.functionIds && item.functionIds.length > 0 ? item.functionIds[0] : item.functionId}}"
+        data-functionids="{{item.functionIds || (item.functionId ? [item.functionId] : [])}}"
       >
         <image
           class="template-image"

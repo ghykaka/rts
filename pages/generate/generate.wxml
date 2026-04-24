@@ -1,5 +1,15 @@
 <!--pages/generate/generate.wxml-->
 <view class="container">
+  <!-- 页面加载中提示 -->
+  <view class="page-loading" wx:if="{{!pageReady}}">
+    <view class="loading-content">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+  </view>
+
+  <!-- 页面内容（加载完成后显示） -->
+  <block wx:if="{{pageReady}}">
   <!-- 功能主图（大图/头图）- 置顶显示 -->
   <view class="main-image-section" wx:if="{{mainImage}}">
     <image class="main-image" src="{{mainImage}}" mode="widthFix" />
@@ -103,7 +113,7 @@
       <view class="form-label">
         <text>{{item.fieldName}}</text>
         <text class="required-mark" wx:if="{{item.isRequired}}">*</text>
-        <text class="char-count">{{formDataLength[item.fieldKey] || 0}}/{{item.maxLength || 200}}</text>
+        <text class="char-count">{{formDataLength[item.fieldKey] || 0}}/{{item.maxLength || 500}}</text>
       </view>
       <textarea
         class="form-textarea"
@@ -111,7 +121,7 @@
         value="{{formData[item.fieldKey]}}"
         data-field="{{item.fieldKey}}"
         bindinput="onFormInput"
-        maxlength="{{item.maxLength || 200}}"
+        maxlength="{{item.maxLength || 500}}"
       />
     </view>
 
@@ -154,7 +164,7 @@
       <view class="form-label">
         <text>{{item.fieldName}}</text>
         <text class="required-mark" wx:if="{{item.isRequired}}">*</text>
-        <text class="char-count">{{formDataLength[item.fieldKey] || 0}}/{{item.maxLength || 200}}</text>
+        <text class="char-count">{{formDataLength[item.fieldKey] || 0}}/{{item.maxLength || 500}}</text>
       </view>
       <textarea
         class="form-textarea"
@@ -162,7 +172,7 @@
         value="{{formData[item.fieldKey]}}"
         data-field="{{item.fieldKey}}"
         bindinput="onFormInput"
-        maxlength="{{item.maxLength || 200}}"
+        maxlength="{{item.maxLength || 500}}"
       />
     </view>
 
@@ -184,8 +194,8 @@
             mode="aspectFill"
           />
           <view wx:else class="upload-placeholder">
-            <text class="upload-icon">+</text>
-            <text class="upload-text">{{item.fieldName}}</text>
+            <view class="upload-icon">+</view>
+            <view class="upload-text">{{item.fieldName}}</view>
           </view>
         </view>
       </view>
@@ -198,7 +208,7 @@
     
     <!-- 企业用户：分两行布局 -->
     <view class="payment-layout" wx:if="{{isEnterpriseUser}}">
-      <!-- 第一行：企业余额支付（宽度拉通） -->
+      <!-- 第一行：企业积分支付（宽度拉通） -->
       <view
         class="payment-item payment-enterprise-item {{selectedCostType === 'enterprise_balance' ? 'active' : ''}}"
         bindtap="selectCostType"
@@ -208,18 +218,18 @@
           <view class="radio-inner" wx:if="{{selectedCostType === 'enterprise_balance'}}"></view>
         </view>
         <view class="payment-info">
-          <text class="payment-label">{{isEnterpriseAdmin ? '企业余额' : '子账号额度'}}</text>
-          <text class="payment-price">¥{{balancePriceDisplay}}</text>
+          <text class="payment-label">{{isEnterpriseAdmin ? '企业积分' : '子账号积分'}}</text>
+          <text class="payment-price">{{balancePriceDisplay}}积分</text>
         </view>
         <view class="payment-balance">
-          <text>{{isEnterpriseAdmin ? '企业余额: ¥' : '可用额度: ¥'}}{{isEnterpriseAdmin ? displayEnterpriseBalance : displaySubAccountBalance}}</text>
+          <text>{{isEnterpriseAdmin ? '企业积分: ' : '可用积分: '}}{{isEnterpriseAdmin ? displayEnterpriseBalance : displaySubAccountBalance}}</text>
           <text class="recharge-btn" wx:if="{{isEnterpriseAdmin}}" catchtap="goRechargeEnterprise">去充值</text>
         </view>
       </view>
       
-      <!-- 第二行：个人余额 + 单次付费 -->
+      <!-- 第二行：个人积分 + 单次付费 -->
       <view class="payment-row">
-        <!-- 个人余额支付 -->
+        <!-- 个人积分支付 -->
         <view
           class="payment-item payment-balance-item {{selectedCostType === 'balance' ? 'active' : ''}}"
           bindtap="selectCostType"
@@ -229,16 +239,16 @@
             <view class="radio-inner" wx:if="{{selectedCostType === 'balance'}}"></view>
           </view>
           <view class="payment-info">
-            <text class="payment-label">个人余额</text>
-            <text class="payment-price">¥{{balancePriceDisplay}}</text>
+            <text class="payment-label">个人积分</text>
+            <text class="payment-price">{{balancePriceDisplay}}积分</text>
           </view>
           <view class="payment-balance">
-            <text>余额: ¥{{displayBalance}}</text>
+            <text>积分: {{displayBalance}}</text>
             <text class="recharge-btn" catchtap="goRecharge">去充值</text>
           </view>
         </view>
         
-        <!-- 单次付费（微信支付） -->
+        <!-- 单次付费 -->
         <view
           class="payment-item payment-cash-item {{selectedCostType === 'cash' ? 'active' : ''}}"
           bindtap="selectCostType"
@@ -252,14 +262,13 @@
             <text class="payment-label">单次付费</text>
             <text class="payment-price">¥{{cashPriceDisplay}}</text>
           </view>
-          <image class="weixinpay-icon" src="/assets/weixinpay.png" mode="aspectFit" />
         </view>
       </view>
     </view>
     
     <!-- 个人用户：左右排列 -->
     <view class="payment-options" wx:else>
-      <!-- 个人余额支付 -->
+      <!-- 个人积分支付 -->
       <view
         class="payment-item payment-balance-item {{selectedCostType === 'balance' ? 'active' : ''}}"
         bindtap="selectCostType"
@@ -269,16 +278,16 @@
           <view class="radio-inner" wx:if="{{selectedCostType === 'balance'}}"></view>
         </view>
         <view class="payment-info">
-          <text class="payment-label">个人余额</text>
-          <text class="payment-price">¥{{balancePriceDisplay}}</text>
+          <text class="payment-label">个人积分</text>
+          <text class="payment-price">{{balancePriceDisplay}}积分</text>
         </view>
         <view class="payment-balance">
-          <text>余额: ¥{{displayBalance}}</text>
+          <text>积分: {{displayBalance}}</text>
           <text class="recharge-btn" catchtap="goRecharge">去充值</text>
         </view>
       </view>
       
-      <!-- 单次付费（微信支付） -->
+        <!-- 单次付费 -->
       <view
         class="payment-item payment-cash-item {{selectedCostType === 'cash' ? 'active' : ''}}"
         bindtap="selectCostType"
@@ -300,7 +309,7 @@
   <view class="price-info">
     <text class="price-label">本次生成花费</text>
     <view class="price-value">
-      <text class="price-symbol">¥</text><text class="price-num">{{displayPrice}}</text>
+      <text class="price-symbol" wx:if="{{selectedCostType === 'cash'}}">¥</text><text class="price-num">{{displayPrice}}</text><text class="price-unit" wx:if="{{selectedCostType !== 'cash'}}">积分</text>
     </view>
   </view>
 
@@ -319,4 +328,5 @@
       </view>
     </view>
   </view>
+  </block>
 </view>

@@ -6,16 +6,16 @@ Page({
     isLogin: false,
     userInfo: null,
     balance: 0,
-    displayBalance: '0.00',
+    displayBalance: '0',  // 积分直接显示
     currentMode: 'personal', // 当前模式：personal 或 enterprise
-    personalBalance: '0.00', // 个人余额
-    enterpriseBalance: '0.00', // 企业余额
+    personalBalance: '0', // 个人积分
+    enterpriseBalance: '0', // 企业积分
     userTypeText: '登录后享受更多功能', // 用户类型文本
     hasEnterprise: false, // 是否有企业账号
-    currentBalance: '0.00', // 当前显示的余额
+    currentBalance: '0', // 当前显示的积分
     rechargeButtonText: '充值', // 充值按钮文字
     isEnterpriseAdmin: false, // 是否是企业管理员
-    balanceLabel: '个人余额' // 余额标签（带企业简称或昵称）
+    balanceLabel: '个人积分' // 余额标签（带企业简称或昵称）
   },
 
   onLoad() {
@@ -47,7 +47,7 @@ Page({
         hasEnterprise: hasEnterprise,
         isEnterpriseAdmin: isEnterpriseAdmin,
         userTypeText: this.getUserTypeText(userInfo, savedMode),
-        currentBalance: ((userInfo.balance || 0) / 100).toFixed(2),
+        currentBalance: String(userInfo.balance || 0),  // 积分直接显示
         rechargeButtonText: rechargeButtonText
       })
       this.setBalances(userInfo, savedMode)
@@ -104,7 +104,7 @@ Page({
           hasEnterprise: hasEnterprise,
           isEnterpriseAdmin: isEnterpriseAdmin,
           userTypeText: this.getUserTypeText(user, this.data.currentMode),
-          currentBalance: ((user.balance || 0) / 100).toFixed(2),
+          currentBalance: String(user.balance || 0),  // 积分直接显示
           rechargeButtonText: rechargeButtonText
         })
         this.setBalances(user, this.data.currentMode)
@@ -117,32 +117,31 @@ Page({
     }
   },
 
-  // 设置余额显示
+  // 设置余额显示（积分）
   setBalances(userInfo, mode) {
     if (!userInfo) return
 
-    // 区分个人余额和企业余额
+    // 区分个人积分和企业积分
     const personalBalance = userInfo.balance || 0
     const enterpriseBalance = userInfo.enterprise_balance || 0
     
-    // 根据模式决定显示哪个余额
+    // 根据模式决定显示哪个积分
     const currentBalance = mode === 'enterprise' ? enterpriseBalance : personalBalance
-    const displayBalance = (currentBalance / 100).toFixed(2)
     
-    // 余额标签：企业余额-企业简称 / 个人余额-用户昵称
-    let balanceLabel = '个人余额'
+    // 余额标签：我的积分额度-企业简称 / 个人积分-用户昵称
+    let balanceLabel = '个人积分'
     if (mode === 'enterprise') {
-      balanceLabel = '企业余额 - ' + (userInfo.company_short_name || userInfo.company_name || '')
+      balanceLabel = '我的积分额度 - ' + (userInfo.company_short_name || userInfo.company_name || '')
     } else {
-      balanceLabel = '个人余额 - ' + (userInfo.nickname || '微信用户')
+      balanceLabel = '个人积分 - ' + (userInfo.nickname || '微信用户')
     }
 
     this.setData({
       balance: personalBalance,
-      displayBalance: displayBalance,
-      enterpriseBalance: (enterpriseBalance / 100).toFixed(2),
-      personalBalance: (personalBalance / 100).toFixed(2),
-      currentBalance: displayBalance,
+      displayBalance: String(personalBalance),  // 积分直接显示
+      enterpriseBalance: String(enterpriseBalance),  // 积分直接显示
+      personalBalance: String(personalBalance),  // 积分直接显示
+      currentBalance: String(currentBalance),  // 积分直接显示
       balanceLabel: balanceLabel
     })
   },
@@ -155,11 +154,11 @@ Page({
     }
 
     const enterpriseBalance = this.data.userInfo.enterprise_balance || 0
-    const balanceLabel = '企业余额 - ' + (this.data.userInfo.company_short_name || this.data.userInfo.company_name || '')
+    const balanceLabel = '我的积分额度 - ' + (this.data.userInfo.company_short_name || this.data.userInfo.company_name || '')
     this.setData({ 
       currentMode: 'enterprise',
       userTypeText: this.getUserTypeText(this.data.userInfo, 'enterprise'),
-      currentBalance: (enterpriseBalance / 100).toFixed(2),
+      currentBalance: String(enterpriseBalance),  // 积分直接显示
       balanceLabel: balanceLabel,
       rechargeButtonText: this.getRechargeButtonText('enterprise', this.data.isEnterpriseAdmin)
     })
@@ -169,11 +168,11 @@ Page({
   // 切换到个人模式
   switchToPersonal() {
     const personalBalance = this.data.userInfo.balance || 0
-    const balanceLabel = '个人余额 - ' + (this.data.userInfo.nickname || '微信用户')
+    const balanceLabel = '个人积分 - ' + (this.data.userInfo.nickname || '微信用户')
     this.setData({ 
       currentMode: 'personal',
       userTypeText: this.getUserTypeText(this.data.userInfo, 'personal'),
-      currentBalance: (personalBalance / 100).toFixed(2),
+      currentBalance: String(personalBalance),  // 积分直接显示
       balanceLabel: balanceLabel,
       rechargeButtonText: this.getRechargeButtonText('personal', this.data.isEnterpriseAdmin)
     })
@@ -238,7 +237,7 @@ Page({
     })
   },
 
-  // 临时方法：更新企业账号余额为50元
+  // 临时方法：更新企业账号余额为5000积分
   async updateBalanceTo50() {
     try {
       const db = wx.cloud.database()
@@ -267,11 +266,11 @@ Page({
 
       this.setData({
         balance: 5000,
-        displayBalance: '50.00'
+        displayBalance: '5000'
       })
 
       wx.hideLoading()
-      wx.showToast({ title: '余额已更新为50元', icon: 'success' })
+      wx.showToast({ title: '积分已更新为5000', icon: 'success' })
     } catch (err) {
       console.error('更新余额失败:', err)
       wx.hideLoading()

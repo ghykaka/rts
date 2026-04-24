@@ -60,7 +60,9 @@
         </view>
         <view class="info-row">
           <text class="info-label">金额</text>
-          <text class="info-value price">¥{{item.costAmount}}</text>
+          <text class="info-value price" wx:if="{{item.costType === 'cash'}}">¥{{item.costAmount}}</text>
+          <text class="info-value price" wx:elif="{{item.costAmount > 0}}">{{item.costAmount * 100}}积分</text>
+          <text class="info-value price" wx:else>-</text>
         </view>
         <view class="info-row">
           <text class="info-label">时间</text>

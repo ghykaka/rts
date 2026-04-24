@@ -60,13 +60,13 @@ Page({
       this.functionId = options.functionId
       this.functionName = decodeURIComponent(options.functionName || '')
 
-      // 设置标题为功能名称
+      // 设置标题为功能名称 - 选择素材
       wx.setNavigationBarTitle({
-        title: this.functionName || '选择产品'
+        title: `${this.functionName || '素材'} - 选择素材`
       })
     } else {
       wx.setNavigationBarTitle({
-        title: '选择产品'
+        title: '选择素材'
       })
     }
 
@@ -392,6 +392,11 @@ Page({
         enterpriseId: userInfo.enterprise_id || '',
         page: this.data.page,
         pageSize: this.data.pageSize
+      }
+
+      // 如果选择了一级分类
+      if (this.data.currentPrimaryId) {
+        params.categoryId = this.data.currentPrimaryId
       }
 
       // 如果选择了二级分类

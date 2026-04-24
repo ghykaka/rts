@@ -109,3 +109,22 @@
   background-color: #a5d6a7;
   color: #fff;
 }
+
+.btn-recharge.disabled {
+  background-color: #ccc;
+  color: #fff;
+}
+
+.balance-row {
+  text-align: center;
+  padding: 20rpx 0;
+  color: #666;
+  font-size: 28rpx;
+}
+
+.tips {
+  text-align: center;
+  padding: 20rpx 0;
+  color: #999;
+  font-size: 24rpx;
+}

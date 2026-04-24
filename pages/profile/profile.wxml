@@ -10,12 +10,17 @@
       </view>
     </view>
     <!-- 余额（已登录显示） -->
-    <view class="balance-row" wx:if="{{isLogin}}" catchtap="goRecharge">
+    <view class="balance-row" wx:if="{{isLogin}}">
       <view class="balance-item">
         <text class="balance-label">{{balanceLabel}}</text>
-        <text class="balance-amount">¥{{currentBalance}}</text>
+        <text class="balance-amount">{{currentBalance}}积分</text>
       </view>
-      <view class="btn-recharge" catchtap="goRecharge">
+      <!-- 个人模式：显示充值按钮 -->
+      <view class="btn-recharge" wx:if="{{currentMode === 'personal'}}" catchtap="goRecharge">
+        <text>{{rechargeButtonText}}</text>
+      </view>
+      <!-- 企业模式：只有企业管理员（主账号）显示企业充值按钮 -->
+      <view class="btn-recharge" wx:if="{{currentMode === 'enterprise' && isEnterpriseAdmin}}" catchtap="goRecharge">
         <text>{{rechargeButtonText}}</text>
       </view>
     </view>

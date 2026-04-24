@@ -1,0 +1,10 @@
+{
+  "Comment": "HTTP trigger for virtualPaymentNotify",
+  "timeout": 60,
+  "triggers": [
+    {
+      "triggerPlugin": "http",
+      "enable": true
+    }
+  ]
+}

@@ -202,9 +202,16 @@ async function getClientConfig() {
           }
         }
         
-        // 获取功能名称
+        // 获取功能名称（支持多个功能）
         let functionName = ''
-        if (tpl.functionId && functionMap[tpl.functionId]) {
+        if (tpl.functionIds && tpl.functionIds.length > 0) {
+          // 取第一个功能的名称
+          const firstFunc = functionMap[tpl.functionIds[0]]
+          if (firstFunc) {
+            functionName = firstFunc.name || ''
+          }
+        } else if (tpl.functionId && functionMap[tpl.functionId]) {
+          // 兼容旧数据
           functionName = functionMap[tpl.functionId].name || ''
         }
         

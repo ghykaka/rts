@@ -45,6 +45,17 @@ exports.main = async (event, context) => {
         
         console.log('workflow_product.input_fields:', JSON.stringify(productRes.data.input_fields))
         
+        // 强制将所有字段的 max_length 设为 500（多行文本统一500字）
+        if (func.workflow_product.input_fields) {
+          func.workflow_product.input_fields = func.workflow_product.input_fields.map(field => {
+            // textarea/multiline 类型统一500字，其他类型保持原值但上限500
+            if (field.field_type === 'textarea' || field.field_type === 'multiline') {
+              return { ...field, max_length: 500 }
+            }
+            return { ...field, max_length: Math.min(field.max_length || 500, 500) }
+          })
+        }
+        
         // 如果有 step1（模板选择页），获取关联的模板信息（用于参考样图）
         // 注意：用户实际选择的模板由小程序端根据传入的 templateId 查询
         if (productRes.data.flow_steps?.step1_select_style && func.template_id) {

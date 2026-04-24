@@ -74,7 +74,7 @@ Page({
           prevPage.setData({
             isLogin: true,
             userInfo: res.result.data.userInfo,
-            displayBalance: (res.result.data.userInfo.balance / 100).toFixed(2)
+            displayBalance: String(res.result.data.userInfo.balance || 0)  // 积分直接显示
           })
         }
 

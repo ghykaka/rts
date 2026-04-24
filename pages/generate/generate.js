@@ -31,16 +31,16 @@ Page({
     // 价格信息
     generatePrice: { cash_price: 0, balance_price: 0 },
     selectedCostType: 'balance', // balance / enterprise_balance / cash
-    displayPrice: '0.00',
-    balancePriceDisplay: '0.00',
-    cashPriceDisplay: '0.00',
+    displayPrice: '0',
+    balancePriceDisplay: '0',
+    cashPriceDisplay: '0',
     // 用户信息
     userBalance: 0,
-    displayBalance: '0.00',
+    displayBalance: '0',  // 积分余额
     enterpriseBalance: 0,
-    displayEnterpriseBalance: '0.00',
+    displayEnterpriseBalance: '0',  // 企业积分
     subAccountBalance: 0,
-    displaySubAccountBalance: '0.00',
+    displaySubAccountBalance: '0',  // 子账号积分
     isEnterpriseUser: false, // 是否企业用户（管理员或子账号）
     isEnterpriseAdmin: false, // 是否企业管理员
     // 参考样图
@@ -57,7 +57,11 @@ Page({
     // 状态
     generating: false,
     showSuccessTip: false,
-    orderId: ''
+    orderId: '',
+    // 页面加载状态
+    pageReady: false,
+    functionLoaded: false,
+    userLoaded: false
   },
 
   onLoad(options) {
@@ -169,7 +173,7 @@ Page({
             fieldName: fieldName,
             fieldType: fieldType,
             isRequired: f.is_required !== undefined ? f.is_required : (f.isRequired || false),
-            maxLength: f.max_length !== undefined ? f.max_length : (f.maxLength || 200),
+            maxLength: f.max_length !== undefined ? f.max_length : (f.maxLength || 500),
             placeholder: f.placeholder || ''
           }
         }).filter(f => f.fieldKey) // 过滤掉没有 fieldKey 的字段
@@ -296,6 +300,10 @@ Page({
         wx.setNavigationBarTitle({
           title: func.name || '作品生成'
         })
+
+        // 标记功能详情加载完成
+        this.setData({ functionLoaded: true })
+        this.checkPageReady()
       } else {
         console.error('获取功能详情失败:', res.result?.error)
         wx.showToast({
@@ -365,20 +373,34 @@ Page({
 
         this.setData({
           userBalance: balance,
-          displayBalance: (balance / 100).toFixed(2),
+          displayBalance: String(balance),  // 积分直接显示
           enterpriseBalance: enterpriseBalance,
-          displayEnterpriseBalance: (enterpriseBalance / 100).toFixed(2),
+          displayEnterpriseBalance: String(enterpriseBalance),  // 积分直接显示
           subAccountBalance: subAccountBalance,
-          displaySubAccountBalance: (subAccountBalance / 100).toFixed(2),
+          displaySubAccountBalance: String(subAccountBalance),  // 积分直接显示
           isEnterpriseUser: isEnterpriseUser,
           isEnterpriseAdmin: isEnterpriseAdmin
         })
         
         // 更新默认支付方式（根据余额和价格判断）
         this.updateDefaultCostType()
+        
+        // 标记用户信息加载完成
+        this.setData({ userLoaded: true })
+        this.checkPageReady()
       }
     } catch (err) {
       console.error('getUserInfo error:', err)
+      // 即使失败也标记为已尝试加载，避免一直等待
+      this.setData({ userLoaded: true })
+      this.checkPageReady()
+    }
+  },
+
+  // 检查页面是否已准备好显示
+  checkPageReady() {
+    if (this.data.functionLoaded && this.data.userLoaded && !this.data.pageReady) {
+      this.setData({ pageReady: true })
     }
   },
 
@@ -412,12 +434,14 @@ Page({
   updatePriceDisplay() {
     const balancePrice = this.data.generatePrice.balance_price
     const cashPrice = this.data.generatePrice.cash_price
-    const currentPrice = this.data.selectedCostType === 'balance' || this.data.selectedCostType === 'enterprise_balance' ? balancePrice : cashPrice
+    // cash_price 存储的是分，需要除以100转为元
+    const cashPriceYuan = (cashPrice / 100).toFixed(2)
+    const currentPrice = this.data.selectedCostType === 'balance' || this.data.selectedCostType === 'enterprise_balance' ? balancePrice : cashPriceYuan
     
     this.setData({
-      displayPrice: (currentPrice / 100).toFixed(2),
-      balancePriceDisplay: (balancePrice / 100).toFixed(2),
-      cashPriceDisplay: (cashPrice / 100).toFixed(2)
+      displayPrice: String(currentPrice),  // 积分或元显示
+      balancePriceDisplay: String(balancePrice),  // 积分直接显示
+      cashPriceDisplay: cashPriceYuan  // 现金价格（分转元）
     })
   },
 
@@ -558,13 +582,13 @@ Page({
       ? this.data.generatePrice.balance_price
       : (this.data.selectedCostType === 'balance' ? this.data.generatePrice.balance_price : this.data.generatePrice.cash_price)
 
-    // 检查余额
+    // 检查积分
     if (this.data.selectedCostType === 'enterprise_balance') {
-      // 企业余额支付（管理员或子账号）
+      // 企业积分支付（管理员或子账号）
       if (this.data.isEnterpriseAdmin) {
         if (this.data.enterpriseBalance < currentPrice) {
           wx.showModal({
-            title: '企业余额不足',
+            title: '企业积分不足',
             content: '请充值后继续',
             confirmText: '去充值',
             success: (res) => {
@@ -581,7 +605,7 @@ Page({
         // 子账号
         if (this.data.subAccountBalance < currentPrice) {
           wx.showModal({
-            title: '子账号余额不足',
+            title: '子账号积分不足',
             content: '请联系企业管理员分配额度',
             confirmText: '确定'
           })
@@ -590,7 +614,7 @@ Page({
       }
     } else if (this.data.selectedCostType === 'balance' && this.data.userBalance < currentPrice) {
       wx.showModal({
-        title: '余额不足',
+        title: '积分不足',
         content: '请充值后继续',
         confirmText: '去充值',
         success: (res) => {
@@ -661,9 +685,11 @@ Page({
       if (res.result && res.result.success) {
         const orderId = res.result.data.orderId
 
-        // 如果是微信支付，调用支付
+        // 如果是单次付费，调用虚拟支付（金额需要从分转成元）
         if (this.data.selectedCostType === 'cash') {
-          await this.handleWeChatPayment(orderId, currentPrice)
+          // currentPrice 是分，转成元
+          const paymentAmount = currentPrice / 100
+          await this.handleVirtualPayment(orderId, paymentAmount)
           return
         }
 
@@ -688,11 +714,11 @@ Page({
           showSuccessTip: true,
           orderId: orderId,
           userBalance: newBalance,
-          displayBalance: (newBalance / 100).toFixed(2),
+          displayBalance: String(newBalance),  // 积分直接显示
           enterpriseBalance: newEnterpriseBalance,
-          displayEnterpriseBalance: (newEnterpriseBalance / 100).toFixed(2),
+          displayEnterpriseBalance: String(newEnterpriseBalance),  // 积分直接显示
           subAccountBalance: newSubAccountBalance,
-          displaySubAccountBalance: (newSubAccountBalance / 100).toFixed(2)
+          displaySubAccountBalance: String(newSubAccountBalance)  // 积分直接显示
         })
 
         wx.showToast({
@@ -717,74 +743,185 @@ Page({
     }
   },
 
-  // 处理微信支付
-  async handleWeChatPayment(orderId, amount) {
+  // 处理虚拟支付
+  async handleVirtualPayment(orderId, amount) {
+    const userId = wx.getStorageSync('userId')
+    
     try {
       wx.showLoading({ title: '正在唤起支付...' })
 
-      // 调用创建支付
-      const payRes = await wx.cloud.callFunction({
-        name: 'createOrderPayment',
+      // 1. 获取登录 code
+      const loginRes = await wx.login()
+      if (!loginRes.code) {
+        throw new Error('获取 code 失败')
+      }
+
+      // 2. 获取 sessionKey
+      const sessionRes = await wx.cloud.callFunction({
+        name: 'getSessionKey',
+        data: { code: loginRes.code }
+      })
+
+      if (!sessionRes.result || !sessionRes.result.success) {
+        throw new Error(sessionRes.result?.error || '获取 sessionKey 失败')
+      }
+
+      // 3. 创建充值订单（充值金额=生成价格）
+      const createRes = await wx.cloud.callFunction({
+        name: 'createRecharge',
         data: {
-          userId: wx.getStorageSync('userId'),
-          orderId: orderId
+          userId: userId,
+          amount: amount,
+          bonus: 0,
+          type: 'personal'
         }
       })
 
-      wx.hideLoading()
-
-      if (!payRes.result || !payRes.result.success) {
-        wx.showToast({
-          title: payRes.result?.error || '支付创建失败',
-          icon: 'none'
-        })
-        this.setData({ generating: false })
-        return
+      if (!createRes.result || !createRes.result.success) {
+        throw new Error(createRes.result?.error || '创建充值订单失败')
       }
 
-      // 调用微信支付
-      const paymentData = payRes.result.data
-      await wx.requestPayment({
-        timeStamp: paymentData.timeStamp,
-        nonceStr: paymentData.nonceStr,
-        package: paymentData.package,
-        signType: 'MD5',
-        paySign: paymentData.paySign,
-        success: () => {
-          wx.showToast({
-            title: '支付成功',
-            icon: 'success'
+      const rechargeId = createRes.result.outTradeNo
+      console.log('创建充值订单成功, rechargeId:', rechargeId)
+
+      wx.hideLoading()
+
+      // 4. 重新获取 loginCode（code 只能使用一次）
+      const newLoginRes = await wx.login()
+      if (!newLoginRes.code) {
+        throw new Error('获取 loginCode 失败')
+      }
+
+      // 5. 获取虚拟支付参数
+      const paymentRes = await wx.cloud.callFunction({
+        name: 'createVirtualPayment',
+        data: {
+          userId: userId,
+          rechargeId: rechargeId,
+          totalFee: amount,
+          loginCode: newLoginRes.code
+        }
+      })
+
+      if (!paymentRes.result || !paymentRes.result.success) {
+        throw new Error(paymentRes.result?.error || '获取支付参数失败')
+      }
+
+      const payData = paymentRes.result.data
+      console.log('虚拟支付参数:', JSON.stringify(payData))
+
+      // 6. 调用虚拟支付
+      await this.callVirtualPaymentForGenerate(payData, rechargeId, orderId, amount)
+
+    } catch (err) {
+      console.error('handleVirtualPayment error:', err)
+      wx.hideLoading()
+      wx.showToast({
+        title: err.message || '支付失败，请重试',
+        icon: 'none'
+      })
+      this.setData({ generating: false })
+    }
+  },
+
+  // 调用虚拟支付 wx.requestVirtualPayment（用于生成订单）
+  async callVirtualPaymentForGenerate(payData, rechargeId, orderId, amount) {
+    return new Promise((resolve, reject) => {
+      console.log('准备调用虚拟支付...')
+
+      wx.requestVirtualPayment({
+        mode: 'short_series_coin',
+        env: Number(payData.env),
+        offerId: String(payData.offerId),
+        buyQuantity: Number(payData.buyQuantity) || 1,
+        coinAmount: Number(payData.coinAmount),
+        currencyType: 'CNY',
+        outTradeNo: String(payData.outTradeNo),
+        attach: String(payData.attach || ''),
+        signData: String(payData.signData),
+        paySig: String(payData.paySig),
+        signature: String(payData.signature),
+        success: (res) => {
+          console.log('虚拟支付成功:', res)
+          this.handleVirtualPaymentSuccess(rechargeId, orderId, amount)
+          resolve(res)
+        },
+        fail: (err) => {
+          console.error('虚拟支付失败:', err)
+          if (err.errMsg && err.errMsg.includes('cancel')) {
+            wx.showToast({ title: '已取消支付', icon: 'none' })
+          } else {
+            wx.showToast({ title: err.errMsg || '支付失败', icon: 'none' })
+          }
+          this.setData({ generating: false })
+          reject(err)
+        }
+      })
+    })
+  },
+
+  // 虚拟支付成功后，用积分支付生成订单
+  async handleVirtualPaymentSuccess(rechargeId, orderId, amount) {
+    wx.showLoading({ title: '处理中...' })
+
+    try {
+      // 调用云函数确认虚拟充值并用积分支付订单
+      const confirmRes = await wx.cloud.callFunction({
+        name: 'confirmVirtualRecharge',
+        data: {
+          rechargeId: rechargeId,
+          amount: amount,
+          orderId: orderId  // 传入订单ID，充值成功后自动用积分支付
+        }
+      })
+
+      console.log('确认充值并支付订单结果:', confirmRes)
+
+      wx.hideLoading()
+
+      if (confirmRes.result && confirmRes.result.success) {
+        // 刷新用户余额
+        const userRes = await wx.cloud.callFunction({
+          name: 'getUserInfo',
+          data: { userId: wx.getStorageSync('userId') }
+        })
+
+        if (userRes.result && userRes.result.success) {
+          const userData = userRes.result.data
+          this.setData({
+            userBalance: userData.balance || 0,
+            displayBalance: String(userData.balance || 0),
+            generating: false,
+            showSuccessTip: true,
+            orderId: orderId
           })
+        } else {
           this.setData({
             generating: false,
             showSuccessTip: true,
             orderId: orderId
           })
-        },
-        fail: (err) => {
-          console.error('支付取消或失败:', err)
-          if (err.errMsg.includes('cancel')) {
-            wx.showToast({
-              title: '已取消支付',
-              icon: 'none'
-            })
-          } else {
-            wx.showToast({
-              title: '支付失败',
-              icon: 'none'
-            })
-          }
-          this.setData({ generating: false })
         }
-      })
+
+        wx.showToast({
+          title: '支付成功',
+          icon: 'success'
+        })
+      } else {
+        this.setData({ generating: false })
+        wx.showToast({
+          title: confirmRes.result?.error || '处理失败',
+          icon: 'none'
+        })
+      }
     } catch (err) {
-      console.error('handleWeChatPayment error:', err)
+      console.error('处理支付结果失败:', err)
       wx.hideLoading()
+      this.setData({ generating: false })
       wx.showToast({
-        title: '支付失败，请重试',
+        title: '支付成功，刷新页面查看',
         icon: 'none'
       })
-      this.setData({ generating: false })
     }
   },
 

@@ -14,8 +14,8 @@
           />
           <view class="info">
             <text class="nickname">{{userInfo.nickname || '微信用户'}}</text>
-            <text class="balance">余额：¥{{displayBalance}}</text>
-            <text class="balance" wx:if="{{isSubAccount}}">企业额度：¥{{displayEnterpriseBalance}}</text>
+            <text class="balance">积分：{{displayBalance}}</text>
+            <text class="balance" wx:if="{{isSubAccount}}">企业积分：{{displayEnterpriseBalance}}</text>
           </view>
         </view>
         <view class="recharge-btn" catchtap="goRecharge">
@@ -106,7 +106,8 @@
           data-cover="{{tpl.thumbnail || tpl.originalImage}}"
           data-desc="{{tpl.templateDesc || tpl.description || ''}}"
           data-needmaterial="{{tpl.needMaterial}}"
-          data-functionid="{{tpl.functionId}}"
+          data-functionid="{{tpl.functionIds && tpl.functionIds.length > 0 ? tpl.functionIds[0] : tpl.functionId}}"
+          data-functionids="{{tpl.functionIds || (tpl.functionId ? [tpl.functionId] : [])}}"
         >
           <image
             class="waterfall-cover"
@@ -118,6 +119,7 @@
             <view class="waterfall-tags">
               <text class="waterfall-category" wx:if="{{tpl.categoryPath}}">{{tpl.categoryPath}}</text>
               <text class="waterfall-function" wx:if="{{tpl.functionName}}">{{tpl.functionName}}</text>
+              <text class="waterfall-function-multi" wx:if="{{tpl.functionIds && tpl.functionIds.length > 1}}">+{{tpl.functionIds.length - 1}}</text>
             </view>
           </view>
         </view>

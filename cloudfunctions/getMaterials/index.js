@@ -10,7 +10,8 @@ exports.main = async (event, context) => {
     userType, 
     userId, 
     enterpriseId,
-    category2Id, 
+    categoryId,   // 一级分类ID
+    category2Id,  // 二级分类ID
     page = 1, 
     pageSize = 30 
   } = event
@@ -35,6 +36,9 @@ exports.main = async (event, context) => {
     }
 
     // 分类筛选
+    if (categoryId) {
+      whereCondition.category1_id = categoryId  // 一级分类用 category1_id
+    }
     if (category2Id) {
       whereCondition.category2_id = category2Id
     }

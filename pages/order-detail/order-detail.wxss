@@ -193,9 +193,11 @@
 }
 
 .action-btn {
-  font-size: 24rpx;
+  font-size: 28rpx;
   color: #D40E61;
-  padding: 4rpx 12rpx;
+  padding: 12rpx 28rpx;
+  background: #FFF0F3;
+  border-radius: 10rpx;
 }
 
 .output-image-wrap {

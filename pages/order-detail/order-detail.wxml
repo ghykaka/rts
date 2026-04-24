@@ -34,7 +34,8 @@
       <!-- 支付金额 + 支付方式 -->
       <view class="info-item">
         <text class="info-label">支付金额</text>
-        <text class="info-value price" wx:if="{{detail.costAmount > 0}}">¥{{detail.costAmount}} {{detail.costType}}</text>
+        <text class="info-value price" wx:if="{{detail.costAmount > 0 && (detail.costType === 'cash')}}">¥{{detail.costAmount}}</text>
+        <text class="info-value price" wx:elif="{{detail.costAmount > 0}}">{{detail.costAmount * 100}}积分</text>
         <text class="info-value" wx:else>免费</text>
       </view>
       
@@ -111,8 +112,8 @@
           <view class="output-header">
             <text class="output-name">{{item.fieldName}}</text>
             <view class="output-actions">
-              <text class="action-btn" wx:if="{{item.downloadable}}" bindtap="downloadImage" data-url="{{item.value}}" data-type="{{item.fieldType}}">下载</text>
-              <text class="action-btn" wx:if="{{item.copyable}}" bindtap="copyText" data-text="{{item.value}}">复制</text>
+              <view class="action-btn" wx:if="{{item.downloadable}}" bindtap="downloadImage" data-url="{{item.value}}" data-type="{{item.fieldType}}">下载</view>
+              <view class="action-btn" wx:if="{{item.copyable}}" bindtap="copyText" data-text="{{item.value}}">复制</view>
             </view>
           </view>
           

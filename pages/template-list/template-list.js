@@ -18,6 +18,9 @@ Page({
     currentCategory1: '',     // 当前选中的一级分类ID
     currentCategory2: '',     // 当前选中的二级分类ID
     
+    // 功能相关
+    functionName: '',         // 功能名称（从首页入口带入）
+    
     // 模板相关
     templates: [],
     column0: [],
@@ -33,21 +36,30 @@ Page({
   },
 
   onLoad(options) {
-    // 如果从首页传入名称,设置标题
-    if (options.name) {
-      const name = decodeURIComponent(options.name)
-      wx.setNavigationBarTitle({
-        title: name
-      })
-    }
-
     // 保存功能ID参数（如果不需要显示模板列表，直接跳转到生成页）
     if (options.functionId) {
       this.functionId = options.functionId
       const functionName = decodeURIComponent(options.functionName || '')
       this.functionName = functionName
+      
+      // 设置页面data中的functionName，用于wxml显示
+      this.setData({ functionName })
+      
+      // 设置标题格式："功能名称 - 选择模板"
+      wx.setNavigationBarTitle({
+        title: `${functionName || '模板'} - 选择模板`
+      })
+      
       // 调用云函数获取功能配置，决定跳转逻辑
       this.loadFunctionConfig(options.functionId)
+    } else {
+      // 没有功能ID，使用传入的名称作为标题
+      if (options.name) {
+        const name = decodeURIComponent(options.name)
+        wx.setNavigationBarTitle({
+          title: name
+        })
+      }
     }
 
     // 保存 redirect 参数，用于回调模式
@@ -55,6 +67,11 @@ Page({
       this.redirectTo = 'generate-flow'
     } else {
       this.redirectTo = null
+    }
+
+    // 保存预选的模板ID（从首页跳转时带入）
+    if (options.templateId) {
+      this.preselectedTemplateId = options.templateId
     }
 
     this.loadInitialData()
@@ -269,9 +286,13 @@ Page({
       column1: [],
       column2: [],
       page: 1,
-      hasMore: true
+      hasMore: true,
+      loading: false
     })
-    this.loadTemplates()
+    
+    // 如果是选择"全部"（industry为空），直接用 undefined
+    const industryParam = industry || undefined
+    this.loadTemplates(industryParam)
   },
 
   // 切换显示更多行业
@@ -326,7 +347,7 @@ Page({
   },
 
   // 加载模板列表
-  async loadTemplates() {
+  async loadTemplates(industryOverride) {
     if (this.data.loading) return
     if (!this.data.hasMore && this.data.page > 1) return
 
@@ -335,11 +356,15 @@ Page({
     }
 
     try {
+      // 如果有 override 参数则使用，否则使用 currentIndustry
+      const industry = industryOverride !== undefined ? industryOverride : (this.data.currentIndustry || undefined)
+      
       const queryData = {
-        industry: this.data.currentIndustry || undefined,
+        industry: industry,
         category1: this.data.currentCategory1 || undefined,
         category2: this.data.currentCategory2 || undefined,
         templateType: 'image',
+        functionId: this.functionId || undefined,  // 添加功能ID筛选
         page: this.data.page,
         pageSize: this.data.pageSize
       }
@@ -402,14 +427,15 @@ Page({
 
   // 选择模板
   selectTemplate(e) {
-    const { id, name, cover, description, needmaterial, functionid } = e.currentTarget.dataset
-    console.log('selectTemplate:', { id, name, cover, description, needmaterial, functionid })
+    const { id, name, cover, description, needmaterial, functionid, functionids } = e.currentTarget.dataset
+    console.log('selectTemplate:', { id, name, cover, description, needmaterial, functionid, functionids })
     console.log('redirectTo:', this.redirectTo)
     console.log('functionId (page):', this.functionId)
     console.log('flowSteps:', this.flowSteps)
 
-    // 优先使用模板绑定的 functionId，如果没有则使用页面级别的 functionId
-    const functionId = functionid || this.functionId || ''
+    // 优先使用模板绑定的 functionIds 数组，否则使用单个 functionId，最后使用页面级别的 functionId
+    const templateFunctionIds = functionids || (functionid ? [functionid] : [])
+    const functionId = templateFunctionIds.length > 0 ? templateFunctionIds[0] : (this.functionId || '')
     
     // 如果是回调模式，保存选中模板并返回
     if (this.redirectTo === 'generate-flow') {

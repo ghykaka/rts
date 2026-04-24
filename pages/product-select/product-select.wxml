@@ -1,7 +1,7 @@
 <!--pages/product-select/product-select.wxml-->
 <view class="container">
   <!-- Step标题 -->
-  <view class="step-title">Step2，选择产品</view>
+  <view class="step-title">选择素材</view>
 
   <!-- 模板预览 -->
   <view class="header-section">

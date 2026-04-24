@@ -5,8 +5,8 @@ Page({
   data: {
     userInfo: null,
     isLogin: false,
-    displayBalance: '0.00',
-    displayEnterpriseBalance: '0.00',  // 企业子账户余额
+    displayBalance: '0',  // 积分余额
+    displayEnterpriseBalance: '0',  // 企业子账户积分
     isSubAccount: false,  // 是否是企业子账户
     // 首页配置组件
     homeConfigs: [],
@@ -28,7 +28,7 @@ Page({
       this.setData({
         isLogin: false,
         userInfo: null,
-        displayBalance: '0.00'
+        displayBalance: '0'
       })
     }
   },
@@ -42,8 +42,8 @@ Page({
       this.setData({
         userInfo: userInfo,
         isLogin: true,
-        displayBalance: ((userInfo.balance || 0) / 100).toFixed(2),
-        displayEnterpriseBalance: ((userInfo.enterprise_balance || 0) / 100).toFixed(2),
+        displayBalance: String(userInfo.balance || 0),  // 积分余额（直接显示，不再除以100）
+        displayEnterpriseBalance: String(userInfo.enterprise_balance || 0),  // 企业子账户积分
         isSubAccount: isSubAccount
       })
     }
@@ -97,7 +97,7 @@ Page({
       this.setData({
         isLogin: false,
         userInfo: null,
-        displayBalance: '0.00'
+        displayBalance: '0'
       })
       return
     }
@@ -117,15 +117,15 @@ Page({
         this.setData({
           userInfo: userInfo,
           isLogin: true,
-          displayBalance: ((userInfo.balance || 0) / 100).toFixed(2),
-          displayEnterpriseBalance: ((userInfo.enterprise_balance || 0) / 100).toFixed(2),
+          displayBalance: String(userInfo.balance || 0),  // 积分直接显示
+          displayEnterpriseBalance: String(userInfo.enterprise_balance || 0),  // 企业积分直接显示
           isSubAccount: isSubAccount
         })
       } else {
         this.setData({
           isLogin: false,
           userInfo: null,
-          displayBalance: '0.00'
+          displayBalance: '0'
         })
       }
     } catch (err) {
@@ -141,19 +141,90 @@ Page({
 
   // 跳转模板详情
   goTemplateDetail(e) {
-    const { id, name, cover, desc, needmaterial, functionid } = e.currentTarget.dataset
-    console.log('goTemplateDetail:', { id, name, cover, desc, needmaterial, functionid })
+    const { id, name, cover, desc, needmaterial, functionid, functionids } = e.currentTarget.dataset
+    console.log('goTemplateDetail:', { id, name, cover, desc, needmaterial, functionid, functionids })
     
+    // 优先使用 functionIds 数组，否则使用单个 functionId
+    const functionIds = functionids || (functionid ? [functionid] : [])
+    
+    // 如果有 functionId，先检查功能的 flow_steps 配置
+    if (functionIds.length > 0) {
+      // 使用第一个功能ID进行跳转
+      this.goTemplateDetailWithFlow(id, name, cover, desc, needmaterial, functionIds[0], functionIds)
+    } else {
+      // 没有关联功能，按原有逻辑跳转
+      this.jumpToTemplatePage(id, name, cover, desc, needmaterial, '')
+    }
+  },
+
+  // 根据功能 flow_steps 配置决定正确的跳转
+  async goTemplateDetailWithFlow(templateId, templateName, templateCover, templateDesc, needmaterial, functionId, functionIds) {
+    wx.showLoading({ title: '加载中...', mask: true })
+    
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getWorkflowFunctionDetail',
+        data: { functionId }
+      })
+      
+      wx.hideLoading()
+      
+      if (res.result && res.result.success) {
+        const func = res.result.data
+        const flowSteps = func.workflow_product?.flow_steps || {}
+        
+        console.log('模板关联功能 flow_steps:', flowSteps)
+        
+        // 用户已经在首页点了这个模板，相当于 step1（选模板）已经完成
+        // 根据后续步骤决定跳转：
+        
+        if (flowSteps.step1_select_style) {
+          // 有 step1，说明模板已被选中，继续检查 step2
+          if (flowSteps.step2_materials) {
+            // 有 step2（选素材），跳转到素材选择页（step2），带上已选模板
+            wx.navigateTo({
+              url: `/pages/product-select/product-select?templateId=${templateId}&templateName=${encodeURIComponent(templateName || '')}&templateCover=${encodeURIComponent(templateCover || '')}&templateDesc=${encodeURIComponent(templateDesc || '')}&functionId=${functionId}`
+            })
+          } else {
+            // 无 step2，只有 step3，直接跳到生成页
+            wx.navigateTo({
+              url: `/pages/generate/generate?templateId=${templateId}&templateName=${encodeURIComponent(templateName || '')}&templateCover=${encodeURIComponent(templateCover || '')}&templateDesc=${encodeURIComponent(templateDesc || '')}&functionId=${functionId}`
+            })
+          }
+        } else if (flowSteps.step2_materials) {
+          // 无 step1 但有 step2（选素材），跳转到素材选择页
+          wx.navigateTo({
+            url: `/pages/product-select/product-select?templateId=${templateId}&templateName=${encodeURIComponent(templateName || '')}&templateCover=${encodeURIComponent(templateCover || '')}&templateDesc=${encodeURIComponent(templateDesc || '')}&functionId=${functionId}`
+          })
+        } else {
+          // 只有 step3，直接跳到生成页
+          wx.navigateTo({
+            url: `/pages/generate/generate?templateId=${templateId}&templateName=${encodeURIComponent(templateName || '')}&templateCover=${encodeURIComponent(templateCover || '')}&templateDesc=${encodeURIComponent(templateDesc || '')}&functionId=${functionId}`
+          })
+        }
+      } else {
+        console.error('获取功能配置失败:', res.result)
+        this.jumpToTemplatePage(templateId, templateName, templateCover, templateDesc, needmaterial, functionId)
+      }
+    } catch (err) {
+      console.error('goTemplateDetailWithFlow error:', err)
+      wx.hideLoading()
+      this.jumpToTemplatePage(templateId, templateName, templateCover, templateDesc, needmaterial, functionId)
+    }
+  },
+
+  // 原有跳转逻辑（根据 needmaterial 决定跳转）
+  jumpToTemplatePage(templateId, templateName, templateCover, templateDesc, needmaterial, functionId) {
     // 根据模板的 needMaterial 决定跳转
     if (needmaterial === true || needmaterial === 'true') {
       // 需要关联素材，跳转到素材选择页（带上 functionId）
       wx.navigateTo({
-        url: `/pages/product-select/product-select?templateId=${id}&templateName=${encodeURIComponent(name || '')}&templateCover=${encodeURIComponent(cover || '')}&templateDesc=${encodeURIComponent(desc || '')}&functionId=${functionid || ''}`
+        url: `/pages/product-select/product-select?templateId=${templateId}&templateName=${encodeURIComponent(templateName || '')}&templateCover=${encodeURIComponent(templateCover || '')}&templateDesc=${encodeURIComponent(templateDesc || '')}&functionId=${functionId || ''}`
       })
     } else {
       // 不需要关联素材，直接跳转到生成页（带上 functionId）
       wx.navigateTo({
-        url: `/pages/generate/generate?templateId=${id}&templateName=${encodeURIComponent(name || '')}&templateCover=${encodeURIComponent(cover || '')}&templateDesc=${encodeURIComponent(desc || '')}&functionId=${functionid || ''}`
+        url: `/pages/generate/generate?templateId=${templateId}&templateName=${encodeURIComponent(templateName || '')}&templateCover=${encodeURIComponent(templateCover || '')}&templateDesc=${encodeURIComponent(templateDesc || '')}&functionId=${functionId || ''}`
       })
     }
   },

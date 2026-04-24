@@ -12,12 +12,13 @@ exports.main = async (event, context) => {
     category1,          // 一级分类ID
     category2,          // 二级分类ID
     templateType,      // 模板类型: image/video
+    functionId,        // 功能ID筛选（只显示关联该功能的模板）
     page = 1, 
     pageSize = 20 
   } = event
 
   try {
-    console.log('getAppTemplates params:', { industry, category1, category2, templateType, page, pageSize })
+    console.log('getAppTemplates params:', { industry, category1, category2, templateType, functionId, page, pageSize })
     
     // 构建查询条件
     const where = {}
@@ -45,6 +46,16 @@ exports.main = async (event, context) => {
     if (category2) {
       where.category2 = category2
       console.log('Filtering by category2:', category2)
+    }
+    
+    // 功能ID筛选 - 只显示关联该功能的模板（支持多个functionIds）
+    if (functionId) {
+      // 匹配 functionIds 数组中包含该ID，或匹配旧的 functionId 字段
+      where.$or = [
+        { functionIds: functionId },  // 直接查询数组字段包含该ID
+        { functionId: functionId }   // 兼容旧数据（单个functionId字段）
+      ]
+      console.log('Filtering by functionId:', functionId)
     }
 
     console.log('Final where:', JSON.stringify(where))
@@ -113,7 +124,7 @@ exports.main = async (event, context) => {
         total,
         page,
         pageSize,
-        hasMore: templates.length >= pageSize
+        hasMore: (page - 1) * pageSize + templates.length < total
       }
     }
 

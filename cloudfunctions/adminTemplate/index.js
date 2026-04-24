@@ -59,7 +59,7 @@ async function addTemplate(data) {
     reference_images, // 参考样图（数组）
     status,          // 状态：enabled/disabled
     needMaterial,    // 是否需要关联素材
-    functionId       // 绑定的功能ID
+    functionIds      // 绑定的功能ID（数组）
   } = data
   
   // 验证必填字段
@@ -123,7 +123,7 @@ async function addTemplate(data) {
     templateCode: templateCode,
     status: status || 'enabled',
     needMaterial: needMaterial || false,
-    functionId: functionId || '',
+    functionIds: functionIds || [],  // 改为数组
     createTime: now,
     updateTime: now
   }
@@ -157,7 +157,7 @@ async function updateTemplate(data) {
     reference_images,
     status,
     needMaterial,
-    functionId
+    functionIds
   } = data
   
   if (!id) {
@@ -186,7 +186,7 @@ async function updateTemplate(data) {
     reference_images: reference_images || [],
     status: status || 'enabled',
     needMaterial: needMaterial !== undefined ? needMaterial : false,
-    functionId: functionId !== undefined ? functionId : '',
+    functionIds: functionIds || [],  // 改为数组
     updateTime: new Date()
   }
   

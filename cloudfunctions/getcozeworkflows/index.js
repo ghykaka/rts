@@ -150,11 +150,17 @@ async function getWorkflowDetails(workflowId) {
       
       for (const [key, config] of Object.entries(inputProps)) {
         if (typeof config === 'object') {
+          const fieldName = config.description || config.name || key
+          // 判断是否是多行文本字段（字段名包含关键词或配置有多行标记）
+          const isMultiline = isMultilineField(key, fieldName, config)
+          // 多行文本默认1000字，其他默认200字
+          const defaultMaxLength = isMultiline ? 1000 : 200
+          
           inputParams.push({
             field_key: key,
-            field_name: config.description || config.name || key,
-            field_type: getFieldType(config.type),
-            max_length: config.max_length || config.properties ? undefined : 200,
+            field_name: fieldName,
+            field_type: isMultiline ? 'textarea' : getFieldType(config.type),
+            max_length: config.max_length || defaultMaxLength,
             is_required: required.includes(key)
           })
         }
@@ -212,6 +218,27 @@ function getFieldType(type) {
     'object': 'text'
   }
   return typeMap[type] || 'text'
+}
+
+// 判断是否是多行文本字段
+function isMultilineField(key, fieldName, config) {
+  // 如果配置明确标记了 multiline
+  if (config.multiline === true || config.field_type === 'multiline' || config.fieldType === 'multiline') {
+    return true
+  }
+  
+  // 字段名包含关键词的视为多行文本
+  const multilineKeywords = ['内容', '描述', '详情', '正文', '说明', '文案', '文章', '故事', '剧本', '台词', '对话', 'message', 'content', 'description', 'text', 'input']
+  const lowerKey = key.toLowerCase()
+  const lowerName = fieldName.toLowerCase()
+  
+  for (const keyword of multilineKeywords) {
+    if (lowerKey.includes(keyword) || lowerName.includes(keyword)) {
+      return true
+    }
+  }
+  
+  return false
 }
 
 // 获取发布状态名称

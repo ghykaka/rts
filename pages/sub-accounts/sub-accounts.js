@@ -13,13 +13,13 @@ Page({
     allocateUserId: '',
     allocateAmount: '',
     displayAllocateAmount: '',
-    currentSubBalance: '0.00',
-    allocateDiff: '0.00',
+    currentSubBalance: '0',
+    allocateDiff: '0',
     editRemarkModal: false,
     editRemarkUserId: '',
     editRemark: '',
     userInfo: null,
-    companyBalance: '0.00',
+    companyBalance: '0',
     enterprise_id: '',
     // 弹框上移状态
     allocateModalKeyboardUp: false,
@@ -70,7 +70,7 @@ Page({
       this.setData({ 
         userInfo: userInfo,
         enterprise_id: enterprise_id,
-        companyBalance: (enterpriseBalance / 100).toFixed(2)
+        companyBalance: String(enterpriseBalance)  // 积分直接显示
       })
 
       console.log('loadUserInfo 完成, enterprise_id:', enterprise_id)
@@ -105,18 +105,18 @@ Page({
         const accounts = res.result.data || []
         console.log('子账号数据:', accounts)
         
-        // 格式化余额显示
+        // 格式化积分显示
         const formattedAccounts = accounts.map(account => ({
           ...account,
-          displayBalance: ((account.balance || 0) / 100).toFixed(2)
+          displayBalance: String(account.balance || 0)  // 积分直接显示
         }))
 
         this.setData({ subAccounts: formattedAccounts })
 
-        // 计算所有子账号余额总和
+        // 计算所有子账号积分总和
         const totalSubBalance = formattedAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0)
         
-        console.log(`子账号总数: ${accounts.length}, 子账号总余额: ¥${(totalSubBalance / 100).toFixed(2)}`)
+        console.log(`子账号总数: ${accounts.length}, 子账号总积分: ${totalSubBalance}`)
       } else {
         console.log('查询失败:', res.result?.error)
       }
@@ -147,11 +147,11 @@ Page({
     this.setData({ newPhone: e.detail.value })
   },
 
-  // 输入分配余额
+  // 输入分配积分
   onBalanceInput(e) {
     const value = parseFloat(e.detail.value) || 0
     this.setData({
-      newBalance: Math.round(value * 100),  // 转为分
+      newBalance: value,  // 直接存积分
       displayBalance: e.detail.value
     })
   },
@@ -176,22 +176,22 @@ Page({
     }
 
     if (newBalance < 0) {
-      wx.showToast({ title: '分配余额不能为负', icon: 'none' })
+      wx.showToast({ title: '分配积分不能为负', icon: 'none' })
       return
     }
 
-    // 校验企业余额
-    const enterpriseBalanceCents = parseFloat(companyBalance) * 100
+    // 校验企业积分
+    const enterpriseBalance = parseFloat(companyBalance)
     
-    // 计算当前所有子账号余额总和
+    // 计算当前所有子账号积分总和
     const currentSubTotal = subAccounts.reduce((sum, acc) => sum + (acc.balance || 0), 0)
     
-    // 检查分配后是否超出企业余额
+    // 检查分配后是否超出企业积分
     const totalAfterAdd = currentSubTotal + newBalance
-    if (totalAfterAdd > enterpriseBalanceCents) {
-      const availableBalance = ((enterpriseBalanceCents - currentSubTotal) / 100).toFixed(2)
+    if (totalAfterAdd > enterpriseBalance) {
+      const availableBalance = enterpriseBalance - currentSubTotal
       wx.showToast({
-        title: `超出企业余额，可分配: ¥${availableBalance}`,
+        title: `超出企业积分，可分配: ${availableBalance}`,
         icon: 'none',
         duration: 3000
       })
@@ -251,10 +251,10 @@ Page({
     this.setData({ editRemarkModalKeyboardUp: false })
   },
 
-  // 分配余额
+  // 分配积分
   continueAllocateBalance(e) {
     const { userId, balance } = e.currentTarget.dataset
-    const currentBalance = ((balance || 0) / 100).toFixed(2)
+    const currentBalance = String(balance || 0)  // 积分直接显示
 
     this.setData({
       allocateModal: true,
@@ -262,7 +262,7 @@ Page({
       allocateAmount: currentBalance,
       displayAllocateAmount: currentBalance,
       currentSubBalance: currentBalance,
-      allocateDiff: '0.00'
+      allocateDiff: '0'
     })
   },
 
@@ -273,21 +273,21 @@ Page({
       allocateUserId: '',
       allocateAmount: '',
       displayAllocateAmount: '',
-      currentSubBalance: '0.00',
-      allocateDiff: '0.00'
+      currentSubBalance: '0',
+      allocateDiff: '0'
     })
   },
 
-  // 输入分配金额
+  // 输入分配积分
   onAllocateAmountInput(e) {
     const targetAmount = parseFloat(e.detail.value) || 0
     const currentAmount = parseFloat(this.data.currentSubBalance) || 0
-    const diff = (targetAmount - currentAmount).toFixed(2)
+    const diff = targetAmount - currentAmount
 
     this.setData({
       allocateAmount: e.detail.value,
       displayAllocateAmount: e.detail.value,
-      allocateDiff: diff > 0 ? diff : '0.00'
+      allocateDiff: String(diff > 0 ? diff : 0)
     })
   },
 
@@ -296,29 +296,28 @@ Page({
     const { allocateUserId, allocateAmount, companyBalance, subAccounts } = this.data
 
     if (!allocateAmount.trim()) {
-      wx.showToast({ title: '请输入目标余额', icon: 'none' })
+      wx.showToast({ title: '请输入目标积分', icon: 'none' })
       return
     }
 
     const targetAmount = parseFloat(allocateAmount)
     if (isNaN(targetAmount) || targetAmount < 0) {
-      wx.showToast({ title: '金额不正确', icon: 'none' })
+      wx.showToast({ title: '积分不正确', icon: 'none' })
       return
     }
 
     const currentAmount = parseFloat(this.data.currentSubBalance)
 
-    // 检查目标余额是否大于当前余额
+    // 检查目标积分是否大于当前积分
     if (targetAmount <= currentAmount) {
-      wx.showToast({ title: '目标余额必须大于当前余额', icon: 'none' })
+      wx.showToast({ title: '目标积分必须大于当前积分', icon: 'none' })
       return
     }
 
-    // 校验企业余额
-    const targetCents = targetAmount * 100
-    const enterpriseBalanceCents = parseFloat(companyBalance) * 100
+    // 校验企业积分
+    const enterpriseBalance = parseFloat(companyBalance)
     
-    // 计算其他子账号余额总和
+    // 计算其他子账号积分总和
     let otherSubBalance = 0
     for (const account of subAccounts) {
       if (account._id !== allocateUserId) {
@@ -326,11 +325,11 @@ Page({
       }
     }
     
-    // 检查分配后是否超出企业余额
-    const totalAfterAllocate = otherSubBalance + targetCents
-    if (totalAfterAllocate > enterpriseBalanceCents) {
+    // 检查分配后是否超出企业积分
+    const totalAfterAllocate = otherSubBalance + targetAmount
+    if (totalAfterAllocate > enterpriseBalance) {
       wx.showToast({
-        title: `超出企业余额，可分配: ¥${((enterpriseBalanceCents - otherSubBalance) / 100).toFixed(2)}`,
+        title: `超出企业积分，可分配: ${enterpriseBalance - otherSubBalance}`,
         icon: 'none',
         duration: 3000
       })
@@ -342,10 +341,10 @@ Page({
     try {
       const res = await this.callFunction('update', {
         id: allocateUserId,
-        balance: targetCents
+        balance: targetAmount  // 直接传积分
       })
 
-      console.log('分配余额更新结果:', res)
+      console.log('分配积分更新结果:', res)
       wx.hideLoading()
 
       if (res.result && res.result.success) {

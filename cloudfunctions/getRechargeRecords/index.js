@@ -4,24 +4,40 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
 exports.main = async (event, context) => {
-  const { userId } = event
+  const { userId, page = 1, pageSize = 20 } = event
 
-  console.log('=== 获取充值记录 ===', userId)
+  console.log('=== 获取充值记录 ===', { userId, page, pageSize })
 
   if (!userId) {
     return { success: false, error: '用户ID不能为空' }
   }
 
   try {
-    // 获取用户的充值记录（不依赖 orderBy，因为 created_at 是 ISO 字符串，云开发无法正确排序）
+    // 只查询充值成功的记录
+    // 使用 and 查询：user_id = xxx AND status = 'success'
+    const totalResult = await db.collection('recharges')
+      .where({
+        user_id: userId,
+        status: 'success'
+      })
+      .count()
+
+    const total = totalResult.total || 0
+    console.log('总成功记录数:', total)
+
+    // 分页查询成功的充值记录（按创建时间降序，最新的在前）
+    const skip = (page - 1) * pageSize
     const result = await db.collection('recharges')
       .where({
-        user_id: userId
+        user_id: userId,
+        status: 'success'
       })
-      .limit(50)
+      .orderBy('created_at', 'desc')
+      .skip(skip)
+      .limit(pageSize)
       .get()
 
-    console.log('查询到的记录数:', result.data?.length || 0)
+    console.log('本次查询记录数:', result.data?.length || 0)
 
     // 格式化数据并手动排序（最新的在前）
     const records = (result.data || []).map(item => ({
@@ -30,18 +46,21 @@ exports.main = async (event, context) => {
       type: item.type === 'enterprise' ? '企业余额' : '个人余额',
       status: item.status === 'success' ? '成功' : '处理中',
       outTradeNo: item.out_trade_no || '',
-      wechatTradeNo: item.wechat_transaction_id || '',  // 微信支付单号
+      wechatTradeNo: item.wechat_transaction_id || '',
       createdAt: item.created_at ? formatTime(item.created_at) : '',
       paidAt: item.paid_at ? formatTime(item.paid_at) : '',
-      // 用于排序的时间戳
+      orderId: item.order_id || '',  // 关联的生成订单ID
+      paymentPurpose: item.payment_purpose || 'recharge',  // recharge=充值, generate=单次付费
       _sortTime: new Date(item.created_at).getTime() || 0
-    })).sort((a, b) => b._sortTime - a._sortTime) // 降序排列
-
-    console.log('排序后记录:', records.map(r => r.createdAt))
+    })).sort((a, b) => b._sortTime - a._sortTime)
 
     return {
       success: true,
-      data: records
+      data: records,
+      total: total,
+      page: page,
+      pageSize: pageSize,
+      hasMore: skip + records.length < total
     }
 
   } catch (err) {

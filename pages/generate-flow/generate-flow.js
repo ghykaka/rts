@@ -300,6 +300,10 @@ Page({
     const { selectedTemplate, selectedMaterials, functionDetail } = this.data
     
     // 组装生成参数
+    const generatePrice = functionDetail?.generate_price || {}
+    // cash_price 存储的是分，需要除以100转为元
+    const cashPriceYuan = ((generatePrice.cash_price || 0) / 100).toFixed(2)
+    
     const params = {
       functionId: this.data.functionId,
       functionName: this.data.functionName,
@@ -308,7 +312,11 @@ Page({
       templateCover: selectedTemplate?.cover_url || selectedTemplate?.thumbnail || '',
       materials: selectedMaterials,
       workflowProduct: functionDetail?.workflow_product || {},
-      generatePrice: functionDetail?.generate_price || {},
+      generatePrice: generatePrice,
+      generatePriceYuan: {
+        cash_price: cashPriceYuan,
+        balance_price: generatePrice.balance_price || 0
+      },
       referenceImages: functionDetail?.reference_images || [],
       availableSizes: functionDetail?.available_sizes || []
     }

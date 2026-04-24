@@ -119,8 +119,8 @@
       </el-table-column>
       <el-table-column label="绑定功能" width="120" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.functionId" type="success" size="small">
-            已绑定
+          <el-tag v-if="row.functionIds && row.functionIds.length > 0" type="success" size="small">
+            {{ row.functionIds.length }}个
           </el-tag>
           <span v-else style="color: #c0c4cc; font-size: 12px">未绑定</span>
         </template>
@@ -291,7 +291,7 @@
           </span>
         </el-form-item>
         <el-form-item label="绑定功能">
-          <el-select v-model="form.functionId" placeholder="请选择绑定的功能（可选）" clearable style="width: 100%;">
+          <el-select v-model="form.functionIds" multiple placeholder="请选择绑定的功能（可选）" clearable style="width: 100%;" filterable>
             <el-option
               v-for="func in functionOptions"
               :key="func._id"
@@ -382,7 +382,7 @@ const form = reactive({
   referenceImages: [],
   status: 'enabled',
   needMaterial: 'false',
-  functionId: ''
+  functionIds: []
 })
 
 // 表单验证
@@ -588,7 +588,7 @@ const handleAdd = () => {
     referenceImages: [],
     status: 'enabled',
     needMaterial: 'false',
-    functionId: ''
+    functionIds: []
   })
   imageAspectRatio.value = 'auto'
   dialogTitle.value = '新增模板'
@@ -644,7 +644,7 @@ const handleEdit = async (row) => {
     status: row.status,
     templateCode: row.templateCode || '',
     needMaterial: String(row.needMaterial || false),
-    functionId: row.functionId || ''
+    functionIds: row.functionIds || []
   })
   imageAspectRatio.value = 'auto'
   
@@ -922,7 +922,7 @@ const handleSubmit = async () => {
       reference_images: form.referenceImages,
       status: form.status,
       needMaterial: form.needMaterial === 'true',
-      functionId: form.functionId || ''
+      functionIds: form.functionIds || []
     }
     
     console.log('提交的数据:', JSON.stringify(data))
